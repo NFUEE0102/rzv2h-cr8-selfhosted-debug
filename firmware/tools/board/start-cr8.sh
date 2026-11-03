@@ -29,7 +29,7 @@ start_once () {
     # returns EBUSY but state still says "running" — the OLD image keeps executing.
     if [ "$(cat $RP/state)" != "offline" ]; then
         echo stop > $RP/state 2>/dev/null || true
-        for i in $(seq 1 10); do [ "$(cat $RP/state)" = "offline" ] && break; sleep 1; done
+        for _ in $(seq 1 10); do [ "$(cat $RP/state)" = "offline" ] && break; sleep 1; done
     fi
     [ "$(cat $RP/state)" = "offline" ] || { echo "  R8 won't stop (state=$(cat $RP/state))"; return 1; }
 

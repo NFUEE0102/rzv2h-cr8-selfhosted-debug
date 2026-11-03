@@ -2,7 +2,7 @@
 <launchConfiguration type="org.eclipse.cdt.debug.gdbjtag.launchConfigurationType">
     <!-- e2 studio / Eclipse CDT "GDB Hardware Debugging" against the OpenOCD
          dmem gdb server running ON the RZ/V2H (see cr8-dmem.cfg / r8ocd.sh).
-         Needs an SSH tunnel first:  ssh -N -L 3333:127.0.0.1:3333 ubuntu@192.168.1.177
+         Needs an SSH tunnel first:  ssh -N -L 3333:127.0.0.1:3333 <user>@<evk-ip>  (cr8-debug.sh does this)
          Firmware is loaded by remoteproc, never by this launch (no reset, no load). -->
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageFileName" value=""/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageOffset" value=""/>

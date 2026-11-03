@@ -21,7 +21,7 @@ p_type == PT_LOAD 且 p_filesz == 0 且 p_paddr >= 0x40000000
 
 用法: patch-elf-phdr.py <elf>   (就地修改,先備份 .prepatch)
 """
-import io, os, shutil, struct, sys
+import io, shutil, struct, sys
 
 PT_NULL, PT_LOAD = 0, 1
 DDR_MIN = 0x40000000

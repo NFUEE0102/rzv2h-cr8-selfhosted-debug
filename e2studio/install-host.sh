@@ -8,7 +8,7 @@
 #   * installs the desktop launchers (CR8 Debug / STOP / Redeploy)
 # Re-running is safe. Options: --no-build (skip firmware build), --no-desktop.
 set -u
-TAG=install-host
+TAG=install-host; export TAG   # used by say/warn/fail in cr8-common.sh
 HERE=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 REPO=$(cd "$HERE/.." && pwd)
 # shellcheck source=cr8-common.sh

@@ -1,0 +1,56 @@
+name: lint
+
+# The firmware itself cannot be built here (it needs e2 studio + the RZ/V FSP packs), so this
+# only keeps the scripts honest: shell and Python static checks plus a few guard greps that
+# stop lab-specific or private things from creeping back into the tree.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q shellcheck pyflakes3
+
+      - name: shellcheck
+        run: |
+          git ls-files '*.sh' | xargs shellcheck -S warning -e SC1090,SC1091
+
+      - name: Python syntax + pyflakes
+        run: |
+          git ls-files '*.py' | xargs python3 -m py_compile
+          git ls-files '*.py' | xargs pyflakes3
+
+      # Guard greps: text files only (-I), NUL-separated names (the .launch files have spaces),
+      # this workflow itself excluded (it carries the patterns).
+      - name: Guard - no hard-coded lab IPs outside docs
+        run: |
+          # The one allowed place is the first-run default in cr8-common.sh, marked ci:allow-ip.
+          ! git ls-files -z -- . ':!.github' ':!*.md' | xargs -0 grep -nIE '192\.168\.[0-9]+\.[0-9]+' \
+              | grep -v 'ci:allow-ip'
+
+      - name: Guard - no stored passwords
+        run: |
+          ! git ls-files -z -- . ':!.github' | xargs -0 grep -nIE 'EVK_PASS=[A-Za-z0-9]'
+
+      - name: Guard - no private-repo references
+        run: |
+          ! git ls-files -z -- . ':!.github' | xargs -0 grep -nIE 'uav-fc-sim|fc-sim|acados|fc_core0|l4flight|core0-fc|core1-l4|stage_l4'
+
+      - name: Guard - no absolute user paths in scripts and configs
+        run: |
+          ! git ls-files -z -- . ':!.github' ':!*.md' | xargs -0 grep -nIE '/home/user/|/Users/'
+
+      - name: Guard - desktop templates and launch file stay generic
+        run: |
+          grep -q '@E2STUDIO_DIR@' e2studio/CR8-Debug.desktop
+          grep -q '@EVK@' e2studio/tunnel-evk.sh
+          grep -q 'gdb:localhost:3333#' 'e2studio/CR8 core0 via OpenOCD dmem.launch'
+          grep -q 'ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="0"' 'e2studio/CR8 core0 via OpenOCD dmem.launch'

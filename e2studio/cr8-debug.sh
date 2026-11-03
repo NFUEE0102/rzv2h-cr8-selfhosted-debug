@@ -8,7 +8,7 @@
 #   cr8-debug.sh --no-ide   bring everything up, verify, tear down (self-test)
 #   cr8-debug.sh --stop     only tear down (tunnel + OpenOCD on the EVK)
 set -u
-TAG=cr8-debug
+TAG=cr8-debug; export TAG   # used by say/warn/fail in cr8-common.sh
 # shellcheck source=cr8-common.sh
 . "$(dirname "$(readlink -f "$0")")/cr8-common.sh"
 load_config

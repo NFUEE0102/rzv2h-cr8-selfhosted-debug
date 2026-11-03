@@ -51,9 +51,8 @@ else
     echo "   !! MD_BOOT3=0 (SYS_LSI_MODE=$mode): the debug system is held in reset."
     echo "      EVK: set DSW1-7 ON and POWER-CYCLE (the pin is latched at power-on)."
 fi
-for r in /sys/class/remoteproc/remoteproc1; do
-    [ -d "$r" ] && echo "   $(cat $r/name): $(cat $r/state)" || echo "   !! no remoteproc1: this kernel has no CR8 remoteproc support"
-done
+r=/sys/class/remoteproc/remoteproc1
+if [ -d "$r" ]; then echo "   $(cat "$r/name"): $(cat "$r/state")"; else echo "   !! no remoteproc1: this kernel has no CR8 remoteproc support"; fi
 echo
 echo "done. Start the gdb server with:  sudo $DEST/r8ocd.sh"
 echo "(it refuses to run until the CR8 is started: sudo $DEST/board/start-cr8.sh cr8_demo.elf)"

@@ -57,8 +57,6 @@ cleanup; trap - EXIT
 # verdict from the log, not from the exit code (e2studio returns 0 on build errors)
 NB=$(( ${#BUILDS[@]} / 2 ))
 NF=$(grep -c "Build Finished" "$LOG")
-if grep -q "Build Failed" "$LOG" | grep -v "Clean-only"; then :; fi
-FAILS=$(grep "Build Failed" "$LOG" | grep -vc "Clean-only" || true)
 # "Clean-only build ... Build Failed" on a fresh tree (nothing to clean) is noise, filter it:
 REAL_FAILS=$(awk '/Clean-only build/{c=1;next} /Build Failed/{ if(c){c=0;next} else print } /\*\*\*\* Build of/{c=0}' "$LOG" | wc -l)
 echo "e2s_headless: rc=$RC finished=$NF/$NB failed=$REAL_FAILS log=$LOG"

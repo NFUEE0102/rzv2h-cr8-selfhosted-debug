@@ -3,7 +3,7 @@
 # SSH session (OpenSSH ControlMaster, no keys and no sshpass needed), sudo on the EVK.
 #
 # Config: ~/.config/cr8-debug.conf (created interactively on first run)
-#   EVK_HOST=192.168.1.177        EVK IP or hostname
+#   EVK_HOST=192.168.1.177        EVK IP or hostname            (ci:allow-ip example)
 #   EVK_USER=ubuntu               login user (needs sudo)
 #   EVK_PASS=                     optional; empty = ask once per session. Also used for sudo.
 #   FW=cr8_demo.elf               firmware file name in /lib/firmware on the EVK
@@ -29,7 +29,7 @@ ask() {  # ask VAR "prompt" "default"
 load_config() {
     if [ ! -f "$CONF" ]; then
         say "No config yet ($CONF). A few questions:"
-        ask EVK_HOST "EVK IP address" "192.168.1.177"
+        ask EVK_HOST "EVK IP address" "192.168.1.177"   # ci:allow-ip default only
         ask EVK_USER "EVK user" "ubuntu"
         local remember
         read -r -s -p "EVK password (also used for sudo on the EVK): " EVK_PASS; echo
@@ -98,8 +98,7 @@ evk_ocd_start() {
 
 evk_ocd_stop() {
     evk_sudo "pkill -TERM openocd" >/dev/null 2>&1
-    local i
-    for i in 1 2 3 4 5; do evk_ocd_running || return 0; sleep 1; done
+    for _ in 1 2 3 4 5; do evk_ocd_running || return 0; sleep 1; done
     evk_sudo "pkill -KILL openocd" >/dev/null 2>&1; sleep 1
     evk_ocd_running && return 1 || return 0
 }
@@ -109,7 +108,7 @@ tunnel_open() {
     tunnel_up && return 0
     ssh "${SSH_OPTS[@]}" -N -f -o ExitOnForwardFailure=yes -L "$PORT:127.0.0.1:$PORT" "$EVK" \
         || fail "tunnel failed (port $PORT busy? another cr8-debug still open?)"
-    local i; for i in $(seq 1 10); do tunnel_up && return 0; sleep 0.5; done
+    local _i; for _i in $(seq 1 10); do tunnel_up && return 0; sleep 0.5; done
     fail "tunnel did not come up"
 }
 tunnel_close() { pkill -f "[s]sh .*-L $PORT:127.0.0.1:$PORT $EVK" 2>/dev/null || true; }

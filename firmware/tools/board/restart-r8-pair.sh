@@ -14,8 +14,8 @@ echo stop > /sys/class/remoteproc/remoteproc1/state 2>/dev/null
 sleep 2
 
 echo "== 依序上 =="
-FORCE=1 $(dirname "$0")/start-cr8.sh "$FW0" 2>/dev/null | tail -1
-FORCE=1 $(dirname "$0")/start-cr8-core1.sh "$FW1" 2>/dev/null | tail -1
+FORCE=1 "$(dirname "$0")/start-cr8.sh" "$FW0" 2>/dev/null | tail -1
+FORCE=1 "$(dirname "$0")/start-cr8-core1.sh" "$FW1" 2>/dev/null | tail -1
 sleep 2
 echo "== 黑盒 =="
-python3 $(dirname "$0")/bb.py --all 2>/dev/null
+python3 "$(dirname "$0")/bb.py" --all 2>/dev/null

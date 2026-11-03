@@ -26,7 +26,6 @@ if [ -z "${TC:-}" ]; then
   TC=$(ls -d "$E2STUDIO"/toolchains/gcc_arm/*/bin /opt/toolchains/gcc_arm/*/*/bin 2>/dev/null | head -1)
   [ -n "$TC" ] || TC=$(dirname "$(command -v arm-none-eabi-gcc 2>/dev/null || echo /usr/bin/arm-none-eabi-gcc)")
 fi
-TCROOT=$(dirname "$TC")
 B=$CR8FW/build/$V
 OUT=$CR8FW/out
 PROJ=rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo

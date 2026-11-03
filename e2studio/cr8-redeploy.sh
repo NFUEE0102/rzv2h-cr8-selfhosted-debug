@@ -6,7 +6,7 @@
 #   4. start OpenOCD again       (the tunnel of cr8-debug.sh keeps running) -> press Debug again
 # Disconnect the debug session in e2 studio before clicking this.
 set -u
-TAG=cr8-redeploy
+TAG=cr8-redeploy; export TAG   # used by say/warn/fail in cr8-common.sh
 # shellcheck source=cr8-common.sh
 . "$(dirname "$(readlink -f "$0")")/cr8-common.sh"
 load_config
