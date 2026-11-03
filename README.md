@@ -98,6 +98,12 @@ tick stops and rpmsg clients on Linux time out. Flight hardware: props off.
 
 ## Status
 
+Password-only hosts (no SSH key to the EVK) are verified: a fresh user with an empty
+`EVK_PASS` is asked exactly once by `ssh` for the login password and once by the script for
+the EVK sudo password per launch; every later ssh/scp in that run rides on the same
+connection (OpenSSH ControlMaster). Each launcher run closes the connection when it ends, so
+the next run asks again unless the password is stored in the config.
+
 Verified on an RZ/V2H EVK (Ubuntu, kernel 6.10.14) with e² studio 2025-01 on Ubuntu 24.04:
 attach, registers, `stepi`/Step Over, memory, hardware breakpoints with conditions, Disconnect
 and Terminate both leave the core running, redeploy loop. Not yet tried: CR8 core1, a Windows

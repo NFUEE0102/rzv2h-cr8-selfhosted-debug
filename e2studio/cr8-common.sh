@@ -64,9 +64,23 @@ load_config() {
 # Open (or reuse) the master connection. The first time this asks for the password in the
 # terminal; every ssh/scp below rides on the same connection without asking again.
 ssh_connect() {
-    if ssh "${SSH_OPTS[@]}" -O check "$EVK" 2>/dev/null; then return 0; fi
-    say "connecting to $EVK (password prompt comes from ssh; nothing is stored)"
-    ssh "${SSH_OPTS[@]}" -o BatchMode=no "$EVK" true || fail "cannot log in to $EVK"
+    if ! ssh "${SSH_OPTS[@]}" -O check "$EVK" 2>/dev/null; then
+        say "connecting to $EVK (password prompt comes from ssh; nothing is stored)"
+        ssh "${SSH_OPTS[@]}" -o BatchMode=no "$EVK" true || fail "cannot log in to $EVK"
+    fi
+    ensure_sudo_pass
+}
+
+# Ask for the EVK sudo password once per run, on the terminal itself, so the prompt can never
+# be swallowed by a redirected evk_sudo call (that hung --stop once). Kept in memory only.
+ensure_sudo_pass() {
+    [ -n "${EVK_PASS:-}" ] && return 0
+    if [ -r /dev/tty ]; then
+        read -r -s -p "sudo password for $EVK_USER on the EVK: " EVK_PASS < /dev/tty 2> /dev/tty
+        echo > /dev/tty
+    else
+        read -r -s -p "sudo password for $EVK_USER on the EVK: " EVK_PASS; echo
+    fi
 }
 ssh_close() { ssh "${SSH_OPTS[@]}" -O exit "$EVK" 2>/dev/null || true; }
 evk()       { ssh "${SSH_OPTS[@]}" "$EVK" "$@"; }
@@ -74,9 +88,7 @@ evk_cp()    { scp -q -o ControlMaster=auto -o "ControlPath=$CTL" "$1" "$EVK:$2";
 
 # sudo on the EVK. Password: config, else asked once per run (kept in memory only).
 evk_sudo() {
-    if [ -z "${EVK_PASS:-}" ]; then
-        read -r -s -p "sudo password for $EVK_USER on the EVK: " EVK_PASS; echo
-    fi
+    ensure_sudo_pass
     ssh "${SSH_OPTS[@]}" "$EVK" "printf '%s\n' '$EVK_PASS' | sudo -S -p '' $*"
 }
 
