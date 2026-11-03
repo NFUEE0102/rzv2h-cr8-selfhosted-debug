@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.png binary
+*.elf binary
+*.tar.gz binary

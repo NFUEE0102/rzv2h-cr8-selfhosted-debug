@@ -1,0 +1,72 @@
+#!/bin/bash
+# Start the CR8 core0 firmware with the required pre-start sequence.
+# Usage: sudo ./start-cr8.sh <firmware-name.elf> [tries]
+# The firmware must already be in /lib/firmware and phdr-patched (see docs/03).
+#
+# Layout note: legacy shared-layout firmware keeps its resource table at
+# 0x42F00000 (the CM33's region) with the black box at 0x431F0000; per-core
+# builds use 0x42F02000 (rsctbl-cr8-0) and 0x439F0000.  This script services
+# both:
+# it clears the virtio status bytes of BOTH resource tables and accepts the
+# boot-health check from either black-box location.
+set -u
+FW=${1:?usage: start-cr8.sh <fw.elf> [tries]}
+TRIES=${2:-4}
+RP=/sys/class/remoteproc/remoteproc1
+BB_SHARED=0x431F0000    # black box, shared-layout firmware (fault_type at +0x44)
+BB_PERCORE=0x439F0000   # black box, per-core-layout firmware
+
+# A location is healthy when it holds no captured fault: 0 = explicitly clean,
+# 0xFFFFFFFF = cold DDR / no black-box firmware has run there.
+bb_ok () {
+    local v
+    v=$(busybox devmem $(($1 + 0x44)) 32 2>/dev/null || echo 0x00000000)
+    [ "$v" = "0x00000000" ] || [ "$v" = "0xFFFFFFFF" ]
+}
+
+start_once () {
+    # Must truly be offline before touching `firmware`: writing it while running
+    # returns EBUSY but state still says "running" — the OLD image keeps executing.
+    if [ "$(cat $RP/state)" != "offline" ]; then
+        echo stop > $RP/state 2>/dev/null || true
+        for i in $(seq 1 10); do [ "$(cat $RP/state)" = "offline" ] && break; sleep 1; done
+    fi
+    [ "$(cat $RP/state)" = "offline" ] || { echo "  R8 won't stop (state=$(cat $RP/state))"; return 1; }
+
+    busybox devmem 0x10480068 32 1   # clear stale MHU ch3 doorbell
+    busybox devmem 0x42F00044 8 0    # virtio status, shared-layout rsctbl slice 0
+    busybox devmem 0x42F000B4 8 0    # virtio status, shared-layout slice 1
+    busybox devmem 0x42F02044 8 0    # virtio status, per-core rsctbl (cr8-0) slice 0
+    busybox devmem 0x42F020B4 8 0    # virtio status, per-core slice 1
+    echo "$FW" > $RP/firmware
+    echo start > $RP/state
+    sleep 3
+    [ "$(cat $RP/state)" = "running" ] || return 1
+    # If the firmware carries the black box, verify it did not die at boot.
+    # Whichever layout the firmware uses, the OTHER location holds cold or
+    # last-healthy data, so requiring both to be fault-free is safe.
+    bb_ok $BB_SHARED && bb_ok $BB_PERCORE
+}
+
+# 安全守門:另一顆 R8 在跑、且本核「曾經跑過」(黑盒 magic 在)時,
+# 單獨重啟 = halt-only stop 後從舊 PC 續跑 = 必跑飛。用 restart-r8-pair.sh。
+# pair 腳本自身以 FORCE=1 通過(cluster 剛整體 reset,安全)。
+OTHER_STATE=$(cat /sys/class/remoteproc/remoteproc2/state 2>/dev/null || echo none)
+if [ "$OTHER_STATE" = "running" ] && [ "${FORCE:-0}" != "1" ]; then
+    if [ "$(cat $RP/state)" != "offline" ] || \
+       [ "$(busybox devmem $BB_PERCORE 32 2>/dev/null)" = "0x42423852" ]; then
+        echo "  ✗ cr8-core1 running 且本核曾跑過 —— 單核重啟不安全(無 per-core reset)。"
+        echo "    請用 tools/restart-r8-pair.sh(兩核全下再依序上)。"
+        exit 1
+    fi
+fi
+
+for n in $(seq 1 "$TRIES"); do
+    if start_once; then
+        [ "$n" -gt 1 ] && echo "  R8 running ($FW), attempt $n" || echo "  R8 running ($FW)"
+        exit 0
+    fi
+    echo "  attempt $n failed (fault shared=$(busybox devmem $((BB_SHARED+0x44)) 32 2>/dev/null) percore=$(busybox devmem $((BB_PERCORE+0x44)) 32 2>/dev/null)) — retrying"
+done
+echo "  FAILED after $TRIES attempts; dmesg tail:"; dmesg | tail -5
+exit 1

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=CR8 Debug STOP
+Name[zh_TW]=CR8 除錯 收尾
+Comment=Close the tunnel and stop OpenOCD on the EVK (use before restarting the CR8)
+Exec=@E2STUDIO_DIR@/cr8-debug.sh --stop
+Icon=process-stop
+Terminal=true
+Categories=Development;
+StartupNotify=false

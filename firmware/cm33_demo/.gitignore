@@ -1,0 +1,10 @@
+Debug
+.settings
+rzv
+rzv_cfg
+rzv_gen
+script
+.api_xml
+.clangd
+.secure*
+JLinkLog.log

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=CR8 Redeploy
+Name[zh_TW]=CR8 重新部署
+Comment=Stop OpenOCD, push the ELF built in e2 studio to the EVK, restart core0, restart OpenOCD
+Exec=@E2STUDIO_DIR@/cr8-redeploy.sh
+Icon=system-software-update
+Terminal=true
+Categories=Development;
+StartupNotify=false

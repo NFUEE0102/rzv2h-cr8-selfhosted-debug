@@ -1,0 +1,12 @@
+.release/
+firmware/build/
+firmware/out/
+firmware/**/Debug/
+firmware/**/Release/
+firmware/**/rzv/
+firmware/**/rzv_gen/
+firmware/**/rzv_cfg/
+firmware/**/.settings/
+__pycache__/
+*.pyc
+*.log

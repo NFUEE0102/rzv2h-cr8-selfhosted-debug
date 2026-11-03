@@ -1,0 +1,58 @@
+/*
+* Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
+#ifndef OPENAMP_RPMSG_CFG_H_
+#define OPENAMP_RPMSG_CFG_H_
+
+// RPMSG config
+#define APP_EPT_ADDR              (0x0U)
+
+// Memory region reserved between 0x43000000 - 0x437FFFFF for RPMSG
+#define RPMSG_MEM_BASE            (0x43000000U)
+#define RPMSG_MEM_SIZE            (0x00800000U)
+
+#define VRING_SIZE                (0x100000U)
+#define VRING_SHM_SIZE            (0x300000U)
+
+#define CFG_RPMSG_SVCNO           (0x2U)
+
+#if BSP_SUPPORT_CORE_CM33
+#define VA_OFFSET                 (0x40000000U)
+#else
+#define VA_OFFSET                 (0x00000000U)
+#endif
+// RPMSG channel #0
+#define CFG_RPMSG_SVC_NAME0       "rpmsg-service-0"
+#define CFG_VRING0_BASE0_PA       (0x43000000U)
+#define CFG_VRING0_BASE0_VA       (CFG_VRING0_BASE0_PA + VA_OFFSET)
+#define CFG_VRING1_BASE0_PA       (0x43050000U)
+#define CFG_VRING1_BASE0_VA       (CFG_VRING1_BASE0_PA + VA_OFFSET)
+#define CFG_VRING_SIZE0           (VRING_SIZE)
+#define CFG_VRING_ALIGN0          (0x100U)
+#define CFG_RPMSG_NUM_BUFS0       (512U)
+#define CFG_VRING_SHM_BASE0_PA    (0x43200000U)
+#define CFG_VRING_SHM_BASE0_VA    (CFG_VRING_SHM_BASE0_PA + VA_OFFSET)
+#define CFG_VRING_SHM_SIZE0       (VRING_SHM_SIZE)
+#define CFG_VRING_CTL_NAME0       "43000000.vring-ctl0"
+#define CFG_VRING_SHM_NAME0       "43200000.vring-shm0"
+#define VRING_NOTIFYID0           (0U)
+
+// RPMSG channel #1
+#define CFG_RPMSG_SVC_NAME1       "rpmsg-service-1"
+#define CFG_VRING0_BASE1_PA       (0x43100000U)
+#define CFG_VRING0_BASE1_VA       (CFG_VRING0_BASE1_PA + VA_OFFSET)
+#define CFG_VRING1_BASE1_PA       (0x43150000U)
+#define CFG_VRING1_BASE1_VA       (CFG_VRING1_BASE1_PA + VA_OFFSET)
+#define CFG_VRING_SIZE1           (VRING_SIZE)
+#define CFG_VRING_ALIGN1          (0x100U)
+#define CFG_RPMSG_NUM_BUFS1       (512U)
+#define CFG_VRING_SHM_BASE1_PA    (0x43500000U)
+#define CFG_VRING_SHM_BASE1_VA    (CFG_VRING_SHM_BASE1_PA + VA_OFFSET)
+#define CFG_VRING_SHM_SIZE1       (VRING_SHM_SIZE)
+#define CFG_VRING_CTL_NAME1       "43100000.vring-ctl1"
+#define CFG_VRING_SHM_NAME1       "43500000.vring-shm1"
+#define VRING_NOTIFYID1           (1U)
+#endif                                 /* OPENAMP_RPMSG_CFG_H_ */

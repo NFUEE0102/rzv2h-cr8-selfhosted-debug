@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=CR8 Debug (e2 studio)
+Name[zh_TW]=CR8 除錯 (e² studio)
+Comment=EVK OpenOCD + SSH tunnel + e2 studio workspace ws_cr8dbg
+Exec=@E2STUDIO_DIR@/cr8-debug.sh
+Icon=utilities-terminal
+Terminal=true
+Categories=Development;
+StartupNotify=false

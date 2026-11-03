@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Plane Remote</title>
+<style>
+  :root { --bg:#111; --fg:#eee; --mut:#888; --acc:#4caf50; --warn:#f44336; --pan:#1e1e1e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.4 system-ui,sans-serif; touch-action:none; }
+  header { display:flex; align-items:center; gap:12px; padding:8px 12px; background:var(--pan); }
+  header h1 { font-size:16px; margin:0; flex:1; }
+  .pill { padding:2px 10px; border-radius:12px; background:#333; font-size:13px; }
+  .pill.ok { background:#2e7d32; } .pill.bad { background:#b71c1c; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; }
+  @media (max-width:700px) { main { grid-template-columns:1fr; } }
+  .box { background:var(--pan); border-radius:8px; padding:12px; }
+  .stick { position:relative; width:100%; aspect-ratio:1; max-width:340px; margin:auto; background:#0a0a0a; border-radius:8px; border:1px solid #333; }
+  .stick .knob { position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:var(--acc); left:50%; top:50%; }
+  .stick .cross { position:absolute; left:50%; top:0; width:1px; height:100%; background:#333; }
+  .stick .cross.h { left:0; top:50%; width:100%; height:1px; }
+  .row { display:flex; align-items:center; gap:8px; margin:6px 0; }
+  .row label { width:130px; color:var(--mut); }
+  input[type=range] { flex:1; }
+  .val { width:70px; text-align:right; font-variant-numeric:tabular-nums; }
+  button { font:inherit; padding:10px 16px; border:0; border-radius:6px; background:#333; color:var(--fg); }
+  button.arm { background:var(--warn); font-weight:600; }
+  button.arm.on { background:var(--acc); }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  td { padding:3px 6px; border-bottom:1px solid #2a2a2a; }
+  td:last-child { text-align:right; }
+  .small { color:var(--mut); font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>EVK 定翼台架遙控</h1>
+  <span id="link" class="pill">連線…</span>
+  <span id="pad" class="pill">無手把</span>
+  <span id="rc" class="pill">RC –</span>
+  <span id="r8" class="pill">R8 –</span>
+</header>
+<section class="box" style="margin:12px 12px 0">
+  <div class="row" style="margin:0">
+    <span class="small" style="flex:1">FS-iA6B i-BUS → CN1 pin 8 (P85, ttySC1)。連線時接收機接管搖桿與油門；CH5 開關 = 解鎖（需油門在最低）。</span>
+    <label class="small"><input type="checkbox" id="rc_en" checked> 啟用 RC</label>
+  </div>
+  <div id="rcbars" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:8px"></div>
+</section>
+<main>
+  <section class="box">
+    <div class="small">搖桿：左右 = 滾轉，上下 = 俯仰（放開回中）。鍵盤 WASD / 方向鍵也可以。</div>
+    <div class="stick" id="stick"><div class="cross"></div><div class="cross h"></div><div class="knob" id="knob"></div></div>
+    <div class="row"><label>油門</label><input type="range" id="thr" min="0" max="100" value="0"><span class="val" id="thrv">0 %</span></div>
+    <div class="row">
+      <button class="arm" id="arm">解鎖 ARM</button>
+      <button id="cut">油門歸零</button>
+      <button id="ctr">舵面回中</button>
+    </div>
+    <div class="small" id="wd"></div>
+  </section>
+  <section class="box">
+    <table id="out">
+      <tr><td>馬達 (CN2-7, P74)</td><td id="o_motor">–</td></tr>
+      <tr><td>左翼 (CN2-8, P75)</td><td id="o_left">–</td></tr>
+      <tr><td>右翼 (CN2-9, PA6)</td><td id="o_right">–</td></tr>
+      <tr><td>尾翼 (CN2-10, PA4)</td><td id="o_tail">–</td></tr>
+    </table>
+    <h3 style="margin:14px 0 6px">混控</h3>
+    <div class="row"><label>左副翼增益</label><input type="range" id="ail_l" min="0" max="150" value="100"><span class="val" id="ail_lv">1.00</span></div>
+    <div class="row"><label>右副翼增益</label><input type="range" id="ail_r" min="0" max="150" value="100"><span class="val" id="ail_rv">1.00</span></div>
+    <div class="row"><label>升降副翼混合</label><input type="range" id="elevon" min="0" max="100" value="0"><span class="val" id="elevonv">0.00</span></div>
+    <div class="row"><label>俯仰增益</label><input type="range" id="pitch_gain" min="0" max="150" value="100"><span class="val" id="pitch_gainv">1.00</span></div>
+    <div class="row"><label>行程 (µs)</label><input type="range" id="throw_us" min="100" max="500" value="400"><span class="val" id="throw_usv">400</span></div>
+    <h3 style="margin:14px 0 6px">微調 / 反向</h3>
+    <div class="row"><label>左翼微調</label><input type="range" id="trim_left" min="-200" max="200" value="0"><span class="val" id="trim_leftv">0</span><input type="checkbox" id="rev_left"><span class="small">反向</span></div>
+    <div class="row"><label>右翼微調</label><input type="range" id="trim_right" min="-200" max="200" value="0"><span class="val" id="trim_rightv">0</span><input type="checkbox" id="rev_right"><span class="small">反向</span></div>
+    <div class="row"><label>尾翼微調</label><input type="range" id="trim_tail" min="-200" max="200" value="0"><span class="val" id="trim_tailv">0</span><input type="checkbox" id="rev_tail"><span class="small">反向</span></div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let roll = 0, pitch = 0, thr = 0, armed = false, dragging = false, keys = {};
+const stick = $('stick'), knob = $('knob');
+function setKnob() {
+  knob.style.left = (50 + roll * 45) + '%';
+  knob.style.top = (50 - pitch * 45) + '%';
+}
+function fromEvent(e) {
+  const r = stick.getBoundingClientRect();
+  const p = e.touches ? e.touches[0] : e;
+  roll = Math.max(-1, Math.min(1, ((p.clientX - r.left) / r.width - 0.5) / 0.45));
+  pitch = Math.max(-1, Math.min(1, -((p.clientY - r.top) / r.height - 0.5) / 0.45));
+  setKnob();
+}
+stick.addEventListener('pointerdown', e => { dragging = true; stick.setPointerCapture(e.pointerId); fromEvent(e); });
+stick.addEventListener('pointermove', e => { if (dragging) fromEvent(e); });
+const release = () => { dragging = false; roll = 0; pitch = 0; setKnob(); };
+stick.addEventListener('pointerup', release); stick.addEventListener('pointercancel', release);
+$('thr').oninput = e => { thr = e.target.value / 100; $('thrv').textContent = e.target.value + ' %'; };
+$('arm').onclick = () => { armed = !armed; if (!armed) { thr = 0; $('thr').value = 0; $('thrv').textContent = '0 %'; } $('arm').className = 'arm' + (armed ? ' on' : ''); $('arm').textContent = armed ? '已解鎖 (按下鎖定)' : '解鎖 ARM'; };
+$('cut').onclick = () => { thr = 0; $('thr').value = 0; $('thrv').textContent = '0 %'; };
+$('ctr').onclick = () => { roll = 0; pitch = 0; setKnob(); };
+window.addEventListener('keydown', e => { keys[e.key] = true; }); window.addEventListener('keyup', e => { keys[e.key] = false; });
+function keyAxes() {
+  if (dragging) return;
+  const k = keys;
+  const r = (k['d'] || k['ArrowRight'] ? 1 : 0) - (k['a'] || k['ArrowLeft'] ? 1 : 0);
+  const p = (k['w'] || k['ArrowUp'] ? 1 : 0) - (k['s'] || k['ArrowDown'] ? 1 : 0);
+  if (r || p || (roll && !dragging) || (pitch && !dragging)) { roll = r; pitch = p; setKnob(); }
+}
+// gamepad: left stick roll/pitch (axes 0/1), right stick Y (axis 3) or triggers for throttle
+let padThr = null;
+function gamepad() {
+  const gp = navigator.getGamepads ? Array.from(navigator.getGamepads()).find(g => g) : null;
+  if (!gp) { $('pad').textContent = '無手把'; $('pad').className = 'pill'; padThr = null; return; }
+  $('pad').textContent = '手把: ' + gp.id.slice(0, 18); $('pad').className = 'pill ok';
+  const dz = v => Math.abs(v) < 0.08 ? 0 : v;
+  if (!dragging) { roll = dz(gp.axes[0] || 0); pitch = -dz(gp.axes[1] || 0); setKnob(); }
+  if (gp.axes.length > 3) { padThr = Math.max(0, Math.min(1, (-(gp.axes[3]) + 1) / 2)); }
+  if (padThr !== null) { thr = padThr; $('thr').value = Math.round(thr * 100); $('thrv').textContent = Math.round(thr * 100) + ' %'; }
+}
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return r.json();
+}
+let ackWd = false;
+async function tick() {
+  keyAxes(); gamepad();
+  try {
+    const j = await post('/set', { roll, pitch, throttle: thr, armed, ack_watchdog: ackWd });
+    ackWd = false;
+    $('link').textContent = '已連線'; $('link').className = 'pill ok';
+    for (const k of ['motor', 'left', 'right', 'tail']) $('o_' + k).textContent = j.out_us[k] ? j.out_us[k] + ' µs' : '靜默';
+    renderRC(j.rc, j.axes);
+    if (j.watchdog_tripped) { $('wd').textContent = '看門狗曾觸發：油門已歸零、已鎖定。再按一次解鎖繼續。'; armed = false; $('arm').className = 'arm'; $('arm').textContent = '解鎖 ARM'; ackWd = true; }
+    else $('wd').textContent = '';
+  } catch (e) { $('link').textContent = '斷線'; $('link').className = 'pill bad'; }
+}
+setInterval(tick, 50);
+async function stateTick() {
+  try { const s = await (await fetch('/state')).json();
+    $('r8').textContent = 'R8 ' + (s.pwmd_alive ? 'ok' : '死') + ' st=' + s.r8_status + ' #' + s.r8_seq;
+    $('r8').className = 'pill ' + (s.pwmd_alive && s.r8_status === 0 ? 'ok' : 'bad');
+  } catch (e) {}
+}
+setInterval(stateTick, 500);
+// config sliders
+for (const id of ['ail_l', 'ail_r', 'elevon', 'pitch_gain']) $(id).oninput = e => { const v = e.target.value / 100; $(id + 'v').textContent = v.toFixed(2); post('/cfg', { [id]: v }); };
+$('throw_us').oninput = e => { $('throw_usv').textContent = e.target.value; post('/cfg', { throw_us: +e.target.value }); };
+for (const k of ['left', 'right', 'tail']) {
+  $('trim_' + k).oninput = e => { $('trim_' + k + 'v').textContent = e.target.value; post('/cfg', { trim: { [k]: +e.target.value } }); };
+  $('rev_' + k).onchange = e => post('/cfg', { rev: { [k]: e.target.checked } });
+}
+// RC (i-BUS) panel
+const rcbars = $('rcbars'), rcNames = ['CH1 滾轉', 'CH2 俯仰', 'CH3 油門', 'CH4 方向', 'CH5 解鎖', 'CH6', 'CH7', 'CH8'];
+rcNames.forEach((n, i) => { const d = document.createElement('div'); d.innerHTML = `<div class="small">${n}</div><div style="height:8px;background:#0a0a0a;border-radius:4px;overflow:hidden"><div id="rcb${i}" style="height:100%;width:50%;background:var(--acc)"></div></div><div class="small" id="rcv${i}">–</div>`; rcbars.appendChild(d); });
+let rcActive = false;
+function renderRC(rc, axes) {
+  if (!rc) return;
+  rcActive = rc.active;
+  const pill = $('rc');
+  if (!rc.enabled) { pill.textContent = 'RC 關閉'; pill.className = 'pill'; }
+  else if (!rc.dev_open) { pill.textContent = 'RC 串口未開'; pill.className = 'pill bad'; }
+  else if (rc.link) { pill.textContent = 'RC 連線 #' + rc.frames + (rc.failsafe ? ' fs' + rc.failsafe : ''); pill.className = 'pill ok'; }
+  else { pill.textContent = 'RC 無訊號 #' + rc.frames + ' bad' + rc.bad; pill.className = 'pill bad'; }
+  for (let i = 0; i < 8; i++) { const v = rc.ch[i] || 0; $('rcb' + i).style.width = Math.max(0, Math.min(100, (v - 1000) / 10)) + '%'; $('rcv' + i).textContent = v ? v + ' µs' : '–'; }
+  if (rc.active && axes) {   // mirror the receiver on the on-screen controls
+    roll = axes.roll; pitch = axes.pitch; setKnob();
+    thr = axes.throttle; $('thr').value = Math.round(thr * 100); $('thrv').textContent = Math.round(thr * 100) + ' %';
+    armed = axes.armed; $('arm').className = 'arm' + (armed ? ' on' : ''); $('arm').textContent = armed ? '已解鎖 (RC CH5)' : '鎖定 (RC CH5)';
+  }
+}
+$('rc_en').onchange = e => post('/rc', { enabled: e.target.checked });
+setKnob();
+</script>
+</body>
+</html>
