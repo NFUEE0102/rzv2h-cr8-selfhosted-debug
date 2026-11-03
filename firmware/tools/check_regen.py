@@ -19,7 +19,6 @@ bad = []
 
 
 def need(cond, msg):
-    global bad
     if cond:
         print(f"  ok   {msg}")
     else:
