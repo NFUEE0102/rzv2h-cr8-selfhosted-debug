@@ -103,6 +103,22 @@ attach, registers, `stepi`/Step Over, memory, hardware breakpoints with conditio
 and Terminate both leave the core running, redeploy loop. Not yet tried: CR8 core1, a Windows
 host, building the project from the e² studio GUI instead of the headless script.
 
+## Roadmap: FSP 4.3.0
+
+The nested-interrupt bug that `fsp-patches/rzv/portASM.asm` works around was reported upstream
+as [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3). On 2026-11-02 Renesas
+confirmed both findings are fixed in **RZ FSP v4.3.0** (`lr_svc` preserved in `IRQ_Handler`,
+AAPCS 8-byte stack alignment in the dispatch path).
+
+This repository stays on e² studio 2025-01 + FSP 3.1.0 until the official 4.3.0 release is
+downloadable. As of 2026-11-03 GitHub carries only v4.2.0 installers; 4.3.0 exists as a commit
+on `master` without a release, packs or the e² studio 2026-10 it requires. When it ships, the
+migration is: install e² studio 2026-10 + FSP 4.3.0 packs, let the configurator migrate
+`firmware/base/configuration.xml`, drop the `portASM.asm` replacement from `patch_packs.py`,
+re-anchor the remaining pack edits (`port.c` tick-probe hook, libmetal `dmb sy` / mutex,
+OpenAMP stage probes) and update `check_regen.py`. Tracked here rather than done early on
+4.2.0, which would need the same work twice.
+
 ## License
 
 Our code and documentation: BSD-3-Clause ([LICENSE](LICENSE)). The repository also contains

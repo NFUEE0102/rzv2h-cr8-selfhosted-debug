@@ -72,6 +72,14 @@ copies the ELF to `/lib/firmware` and restarts the core through `tools/board/sta
 The FreeRTOS files are MIT (Amazon), `bsp_irq.c` is BSD-3-Clause (Renesas); see
 [NOTICE.md](../NOTICE.md).
 
+**Upstream status.** The `portASM.asm` and alignment findings were reported as
+[renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3) and are fixed in RZ FSP v4.3.0
+(Renesas' version keeps `PUSH {r0-r4, r12}` and brackets the three `BLX` calls with
+`PUSH/POP {r0-r4, lr}`, plus `BIC sp, sp, #7` on the SVC path — equivalent to this patch).
+The replacement file stays in this repository until the project moves to 4.3.0; see the
+README roadmap. The `port.c` hook and the libmetal / OpenAMP edits are ours and will be
+re-anchored on the new pack, not dropped.
+
 ## Rules that are easy to forget
 
 * **Verify regeneration** after touching `configuration.xml`; a module added by hand also
