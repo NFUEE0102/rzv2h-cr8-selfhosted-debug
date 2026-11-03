@@ -85,8 +85,7 @@ evk_ocd_running() { evk pgrep openocd >/dev/null 2>&1; }
 
 evk_ocd_start() {
     evk_sudo "sh -c ': > $OCD_DIR/ocd.log; cd $OCD_DIR && nohup ./r8ocd.sh >> ocd.log 2>&1 &'"
-    local i
-    for i in $(seq 1 25); do
+    for _ in $(seq 1 25); do
         evk "grep -q 'Listening on port $PORT' $OCD_DIR/ocd.log" 2>/dev/null && break
         evk "grep -qE 'Refusing|Error|not found' $OCD_DIR/ocd.log" 2>/dev/null && {
             evk "grep -v '^Debug' $OCD_DIR/ocd.log | tail -5"; fail "OpenOCD failed to start"; }
