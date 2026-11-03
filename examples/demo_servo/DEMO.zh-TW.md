@@ -9,7 +9,7 @@
 | EVK .177 | DSW1-7 **ON**（MD_BOOT3=1，上電時鎖存；撥完要斷電再開） |
 | 示波器 .189 | C3 = Pmod CN2 pin 8（P75，GPT4.B），5 ms/div，看脈寬 |
 | 伺服機（可選） | 接 CN2 pin 8 訊號、pin 11 GND，電源走 BEC |
-| 韌體 | `/lib/firmware/cr8_demo.elf` = `.168:~/rzv2h-onboard-dev/cr8-fw/build/core0-demo`（有 bug 的版本） |
+| 韌體 | `/lib/firmware/cr8_demo.elf` = 開發機上 `<repo>/firmware/build/core0-demo` 建出來的（有 bug 的版本；`install-host.sh` 會建好並部署） |
 
 ## 示範程式（`src/demo_servo.c`，60 行，-O0）
 
