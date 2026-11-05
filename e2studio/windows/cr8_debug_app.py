@@ -330,6 +330,29 @@ def prepare_launch(cfg):
         f.write(text)
 
 
+def ensure_workspace(cfg, log):
+    """import the firmware projects into the workspace (headless) if it does not hold them yet"""
+    ws = cfg["workspace"]
+    marker = os.path.join(ws, ".metadata", ".plugins", "org.eclipse.core.resources", ".projects", PROJ)
+    if os.path.isdir(marker):
+        return
+    if os.path.isfile(os.path.join(ws, ".metadata", ".lock")):
+        try:
+            os.remove(os.path.join(ws, ".metadata", ".lock"))   # stale lock from a closed e2 studio
+        except OSError:
+            raise RuntimeError(f"workspace {ws} is in use (e2 studio open?) and has no project yet: close e2 studio and retry") from None
+    cm33 = os.path.join(REPO, "firmware", "cm33_demo")
+    exe = os.path.join(cfg["e2studio"], "eclipse", "e2studioc.exe")
+    log(f"workspace {ws} has no project yet -> importing (headless e2 studio, ~30 s)")
+    os.makedirs(ws, exist_ok=True)
+    r = subprocess.run([exe, "-nosplash", "-data", ws, "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild",
+                        "-import", cm33, "-import", cfg["project_dir"], "-no-indexer"],
+                       capture_output=True, text=True, timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    if not os.path.isdir(marker):
+        raise RuntimeError("headless import did not register the project: " + (r.stdout + r.stderr)[-800:])
+    log("project imported into the workspace")
+
+
 def patch_elf(cfg, log):
     """post-process a copy of the ELF e2 studio built (zero-size DDR PT_LOADs -> PT_NULL)"""
     src = os.path.join(cfg["project_dir"], "Debug", PROJ + ".elf")
@@ -500,6 +523,7 @@ class App(tk.Tk):
             exe = os.path.join(self.cfg["e2studio"], "eclipse", "e2studio.exe")
             if not os.path.isfile(exe):
                 raise RuntimeError(f"e2 studio not found: {exe}")
+            ensure_workspace(self.cfg, self.log)
             self.log("starting e2 studio ... Run -> Debug Configurations -> GDB Hardware Debugging -> 'CR8 core0 via OpenOCD dmem'")
             self.e2s = subprocess.Popen([exe, "-data", self.cfg["workspace"]])
             if self.cfg.get("auto_stop", True):
