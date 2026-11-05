@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.cdt.debug.gdbjtag.launchConfigurationType">
+    <!-- e2 studio / Eclipse CDT "GDB Hardware Debugging" against the OpenOCD
+         dmem gdb server running ON the RZ/V2H (see cr8-dmem.cfg / r8ocd.sh).
+         Needs an SSH tunnel first:  ssh -N -L 3334:127.0.0.1:3334 <user>@<evk-ip>  (cr8-debug.sh does this)
+         Firmware is loaded by remoteproc, never by this launch (no reset, no load). -->
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageFileName" value=""/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageOffset" value=""/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.initCommands" value="set architecture arm&#10;set remotetimeout 10"/>
+    <!-- newer CDT reads the connection from this single attribute, in exactly this
+         "gdb:host:port#" form (as e2 studio itself writes it); the legacy
+         ipAddress/portNumber pair below is ignored (it then defaulted to :1234) -->
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.connection" value="gdb:localhost:3334#"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.ipAddress" value="localhost"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.jtagDevice" value="Generic TCP/IP"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.jtagDeviceId" value="org.eclipse.cdt.debug.gdbjtag.core.jtagdevice.genericDevice"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadImage" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadSymbols" value="true"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.pcRegister" value=""/>
+    <intAttribute key="org.eclipse.cdt.debug.gdbjtag.core.portNumber" value="3334"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.runCommands" value=""/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setPcRegister" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setResume" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setStopAt" value="false"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.stopAt" value="main"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsFileName" value=""/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsOffset" value=""/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.doHalt" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.doReset" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useFileForImage" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useFileForSymbols" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useProjBinaryForImage" value="true"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useProjBinaryForSymbols" value="true"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useRemoteTarget" value="true"/>
+    <stringAttribute key="org.eclipse.cdt.dsf.gdb.DEBUG_NAME" value="gdb-multiarch"/>
+    <booleanAttribute key="org.eclipse.cdt.dsf.gdb.NON_STOP" value="false"/>
+    <booleanAttribute key="org.eclipse.cdt.dsf.gdb.UPDATE_THREADLIST_ON_SUSPEND" value="false"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug/rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo.elf"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo"/>
+    <!-- never rebuild before launch (0 = "Disable auto build"): the ELF must stay
+         the one loaded on the board. Key name as e2 studio writes it. -->
+    <intAttribute key="org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="0"/>
+    <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="true"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value=""/>
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+        <listEntry value="/rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo"/>
+    </listAttribute>
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+        <listEntry value="4"/>
+    </listAttribute>
+    <mapAttribute key="org.eclipse.debug.core.preferred_launchers">
+        <mapEntry key="[debug]" value="org.eclipse.cdt.debug.gdbjtag.core.dsfLaunchDelegate"/>
+    </mapAttribute>
+</launchConfiguration>

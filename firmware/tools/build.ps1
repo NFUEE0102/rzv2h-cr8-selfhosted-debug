@@ -68,7 +68,13 @@ PyRun "$Here\check_regen.py" $B
 
 Write-Host "== [$Variant] ELF post-processing"
 PyRun "$Here\patch-elf-phdr.py" $Elf
-if ($Core -eq 1) { PyRun "$Here\null_phdr_at.py" $Elf 0x081BFFFC }
+if ($Core -eq 1) {
+    PyRun "$Here\null_phdr_at.py" $Elf 0x081BFFFC
+    # give the core1 project its own Eclipse name so it can sit next to the core0 project in one
+    # workspace (the artifact name, Debug\<core0 name>.elf, is unchanged)
+    $proj = Join-Path $B ".project"
+    (Get-Content $proj -Raw) -replace "<name>$Proj</name>", "<name>rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo</name>" | Set-Content $proj -Encoding UTF8
+}
 Copy-Item $Elf (Join-Path $Out "$Variant.elf") -Force
 Copy-Item (Join-Path $B "Debug\$Proj.map") (Join-Path $Out "$Variant.map") -Force -ErrorAction SilentlyContinue
 $md5 = (Get-FileHash -Algorithm MD5 (Join-Path $Out "$Variant.elf")).Hash.ToLower()

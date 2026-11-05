@@ -18,15 +18,18 @@ assert data[:4] == b"\x7fELF" and data[4] == 1 and data[5] == 1, "不是 ELF32 L
 phoff = struct.unpack_from("<I", data, 28)[0]
 phentsize = struct.unpack_from("<H", data, 42)[0]
 phnum = struct.unpack_from("<H", data, 44)[0]
-hit = 0
+hit = done = 0
 for i in range(phnum):
     off = phoff + i * phentsize
     ptype, poff, vaddr, paddr, filesz, memsz = struct.unpack_from("<IIIIII", data, off)
-    if ptype == 1 and vaddr in targets:
+    if vaddr in targets and ptype == 1:
         struct.pack_into("<I", data, off, 0)
         print(f"  phdr[{i}] vaddr 0x{vaddr:08X} filesz 0x{filesz:X}  LOAD -> NULL")
         hit += 1
+    elif vaddr in targets and ptype == 0:
+        print(f"  phdr[{i}] vaddr 0x{vaddr:08X} already NULL")
+        done += 1   # idempotent: an already-processed ELF is fine
 open(path, "wb").write(data)
-if not hit:
+if not hit and not done:
     print("  (沒有命中任何段)")
     sys.exit(1)

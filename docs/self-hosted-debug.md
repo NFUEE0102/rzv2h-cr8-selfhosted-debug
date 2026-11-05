@@ -156,6 +156,11 @@ Core1's debug unit is at `0x1F81_2000` and is in `cr8-dmem.cfg` as the second ta
 * gdb on port 3334: hardware breakpoint in `r8_blackbox_pump`, `next`, detach resumes; a gdb
   session on port 3333 afterwards still works; both black boxes report no fault.
 
+Two gdb clients at once (one per port) work as well: verified from a Windows host with
+e² studio's `arm-none-eabi-gdb.exe`, core1 held at a breakpoint for 8 s while core0's tick
+kept counting, then both halted, then both resumed on detach (see
+[windows-host.md](windows-host.md), "Two cores at once").
+
 Two things learned the hard way while doing this:
 
 * In an event handler use `targets rzv2h.cr8_1; resume`. `rzv2h.cr8_1 resume` is not a

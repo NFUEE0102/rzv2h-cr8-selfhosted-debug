@@ -36,8 +36,10 @@ except ImportError:  # pragma: no cover
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 CONFIG = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "cr8-debug", "config.json")
-PROJ = "rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo"
-PORTS = (3333, 3334)
+PROJ = "rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo"      # Eclipse name of the core0 project (also the artifact name of both)
+PROJ1 = "rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo"     # Eclipse name build.ps1 gives the core1 project
+PORTS = (3333, 3334)                                     # gdb ports: core0, core1
+LAUNCH = {0: "CR8 core0 via OpenOCD dmem.launch", 1: "CR8 core1 via OpenOCD dmem.launch"}
 DEMO_ELF = os.path.join(REPO, "examples", "demo_servo", "cr8_demo.elf")
 
 
@@ -68,9 +70,12 @@ def find_gdb(e2s):
 
 
 DEFAULTS = {
-    "host": "192.168.1.177", "user": "ubuntu",  # ci:allow-ip (default shown in the dialog) "remember": False, "password": "",
+    "host": "192.168.1.177",  # ci:allow-ip (default shown in the dialog)
+    "user": "ubuntu", "remember": False, "password": "",
     "fw": "cr8_demo.elf",
     "project_dir": os.path.join(REPO, "firmware", "build", "core0-demo"),
+    "fw1": "cr8_core1_demo.elf",
+    "project1_dir": os.path.join(REPO, "firmware", "build", "core1-uart"),
     "e2studio": find_e2studio(),
     "workspace": os.path.join(os.path.expanduser("~"), "cr8dbg-workspace"),
     "auto_stop": True,
@@ -152,6 +157,26 @@ class Evk:
     def core0_state(self):
         return self.run("cat /sys/class/remoteproc/remoteproc1/state")[1]
 
+    def core1_state(self):
+        return self.run("cat /sys/class/remoteproc/remoteproc2/state 2>/dev/null || echo none")[1]
+
+    FAULTS = {1: "reset", 2: "undefined instruction", 3: "prefetch abort", 4: "data abort", 5: "undefined instruction",
+              6: "FreeRTOS assert", 7: "stack overflow", 8: "malloc failed"}
+
+    def check_blackboxes(self):
+        """read fault_type (+0x44) of both black boxes; log and return the cores that captured a fault"""
+        out = self.run("for bb in 0x439F0044 0x441F0044; do busybox devmem $bb 32 2>/dev/null || echo 0; done", sudo=True)[1].split()
+        bad = []
+        for core, word in enumerate(out[:2]):
+            try:
+                v = int(word, 16)
+            except ValueError:
+                continue
+            if v not in (0, 0xFFFFFFFF):
+                bad.append(core)
+                self.log(f"!! core{core} black box: fault_type {v} ({self.FAULTS.get(v, 'unknown')}) -> the core is in its abort handler; press Redeploy to restart the pair")
+        return bad
+
     def ocd_running(self):
         return self.run("pgrep -x openocd")[0] == 0
 
@@ -189,28 +214,45 @@ class Evk:
         if rc != 0:
             raise RuntimeError("install-on-evk.sh failed (see log)")
 
-    def start_cr8(self, fw):
-        """(re)start core0 with fw. The CR8 cluster has no per-core reset: when core1 is running,
-        a single-core restart is refused by start-cr8.sh, so both cores go down and up again
-        (restart-r8-pair.sh). Never call this while OpenOCD runs."""
-        core1_state, core1_fw = self.run("cat /sys/class/remoteproc/remoteproc2/state /sys/class/remoteproc/remoteproc2/firmware")[1].split()[:2]
-        if core1_state == "running":
-            self.log(f"core1 is running ({core1_fw}) -> restarting the pair (no per-core reset on the CR8)")
-            rc, out = self.run(f"{self.ocd}/board/restart-r8-pair.sh {fw} {core1_fw}", sudo=True, timeout=90)
+    def start_cr8(self, fw, fw1=None):
+        """(re)start core0 with fw (and core1 with fw1 when given). The CR8 cluster has no
+        per-core reset: when the other core is running a single-core restart is refused by the
+        board scripts, so both cores go down and up again (restart-r8-pair.sh).
+        Never call this while OpenOCD runs."""
+        core1_state, core1_fw = (self.run("cat /sys/class/remoteproc/remoteproc2/state /sys/class/remoteproc/remoteproc2/firmware")[1].split() + ["none", ""])[:2]
+        if fw1 or core1_state == "running":
+            fw1 = fw1 or core1_fw
+            self.log(f"restarting the pair: core0 {fw} + core1 {fw1} (no per-core reset on the CR8)")
+            rc, out = self.run(f"{self.ocd}/board/restart-r8-pair.sh {fw} {fw1}", sudo=True, timeout=120)
+            want1 = True
         else:
             rc, out = self.run(f"{self.ocd}/board/start-cr8.sh {fw}", sudo=True, timeout=90)
+            want1 = False
         for line in out.splitlines()[-4:]:
             self.log("  " + line)
-        if self.core0_state() != "running" or (core1_state != "running" and rc != 0):
+        if self.core0_state() != "running" or (not want1 and rc != 0):
             raise RuntimeError("CR8 core0 did not come up (see log)")
+        if want1 and self.core1_state() != "running":
+            raise RuntimeError("CR8 core1 did not come up (see log)")
 
-    def start_firmware(self, fw):
+    def start_firmware(self, fw, fw1=None):
+        """make sure core0 runs (start fw if offline); then core1 if fw1 is given and installed"""
         st = self.core0_state()
         if st == "running":
             self.log(f"CR8 core0 running ({self.run('cat /sys/class/remoteproc/remoteproc1/firmware')[1]})")
-            return
-        self.log(f"CR8 core0 is '{st}' -> starting {fw}")
-        self.start_cr8(fw)
+        else:
+            self.log(f"CR8 core0 is '{st}' -> starting {fw}")
+            self.start_cr8(fw)
+        st1 = self.core1_state()
+        if st1 == "running":
+            self.log(f"CR8 core1 running ({self.run('cat /sys/class/remoteproc/remoteproc2/firmware')[1]})")
+        elif fw1 and st1 != "none" and self.run(f"test -f /lib/firmware/{fw1}")[0] == 0:
+            self.log(f"CR8 core1 is '{st1}' -> starting {fw1}")
+            rc, out = self.run(f"{self.ocd}/board/start-cr8-core1.sh {fw1}", sudo=True, timeout=90)
+            for line in out.splitlines()[-3:]:
+                self.log("  " + line)
+            if self.core1_state() != "running":
+                self.log("core1 did not start; core0 debugging still works (core1 session will have nothing to attach to)")
 
     def start_openocd(self):
         if self.ocd_running():
@@ -243,15 +285,19 @@ class Evk:
         if self.ocd_running():
             self.run("pkill -KILL openocd", sudo=True)
 
-    def redeploy(self, patched_elf, fw):
+    def redeploy(self, patched_elf, fw, patched_elf1=None, fw1=None):
+        """install the new ELF(s) and restart: core0 alone, or the pair when core1 is involved"""
         was = self.ocd_running()
         self.stop_openocd()
-        self.log(f"uploading {os.path.basename(patched_elf)} ...")
-        self.put(patched_elf, f"/tmp/{fw}")
-        rc, out = self.run(f"install -m 644 /tmp/{fw} /lib/firmware/{fw}", sudo=True)
-        if rc != 0:
-            raise RuntimeError("could not install the firmware: " + out)
-        self.start_cr8(fw)
+        for elf, name in ((patched_elf, fw), (patched_elf1, fw1)):
+            if not elf:
+                continue
+            self.log(f"uploading {name} ...")
+            self.put(elf, f"/tmp/{name}")
+            rc, out = self.run(f"install -m 644 /tmp/{name} /lib/firmware/{name}", sudo=True)
+            if rc != 0:
+                raise RuntimeError("could not install the firmware: " + out)
+        self.start_cr8(fw, fw1 if patched_elf1 else None)
         if was:
             self.start_openocd()
 
@@ -336,57 +382,80 @@ class Forwarder(threading.Thread):
 
 
 # ------------------------------------------------------------------ host side
+def projects(cfg):
+    """(core, project dir, Eclipse project name, firmware name) for every project that exists"""
+    out = [(0, cfg["project_dir"], PROJ, cfg["fw"])]
+    if cfg.get("project1_dir") and os.path.isfile(os.path.join(cfg["project1_dir"], ".project")):
+        out.append((1, cfg["project1_dir"], PROJ1, cfg["fw1"]))
+    return out
+
+
 def prepare_launch(cfg):
-    """copy the launch configuration into the project with e2 studio's own gdb"""
-    src = os.path.join(REPO, "e2studio", "CR8 core0 via OpenOCD dmem.launch")
-    dst = os.path.join(cfg["project_dir"], "CR8 core0 via OpenOCD dmem.launch")
-    if not os.path.isdir(cfg["project_dir"]):
-        return
+    """copy the launch configuration(s) into the project(s) with e2 studio's own gdb"""
     gdb = find_gdb(cfg["e2studio"])   # plain backslashes: this is XML, not sed
-    with open(src, encoding="utf-8") as f:
-        text = f.read().replace('DEBUG_NAME" value="gdb-multiarch"', f'DEBUG_NAME" value="{gdb}"')
-    with open(dst, "w", encoding="utf-8") as f:
-        f.write(text)
+    for core, pdir, _, _ in projects(cfg):
+        if not os.path.isdir(pdir):
+            continue
+        with open(os.path.join(REPO, "e2studio", LAUNCH[core]), encoding="utf-8") as f:
+            text = f.read().replace('DEBUG_NAME" value="gdb-multiarch"', f'DEBUG_NAME" value="{gdb}"')
+        with open(os.path.join(pdir, LAUNCH[core]), "w", encoding="utf-8") as f:
+            f.write(text)
 
 
 def ensure_workspace(cfg, log):
     """import the firmware projects into the workspace (headless) if it does not hold them yet"""
     ws = cfg["workspace"]
-    marker = os.path.join(ws, ".metadata", ".plugins", "org.eclipse.core.resources", ".projects", PROJ)
-    if os.path.isdir(marker):
+    meta = os.path.join(ws, ".metadata", ".plugins", "org.eclipse.core.resources", ".projects")
+    missing = [(pdir, name) for _, pdir, name, _ in projects(cfg) if not os.path.isdir(os.path.join(meta, name))]
+    if not missing:
         return
     if os.path.isfile(os.path.join(ws, ".metadata", ".lock")):
         try:
             os.remove(os.path.join(ws, ".metadata", ".lock"))   # stale lock from a closed e2 studio
         except OSError:
-            raise RuntimeError(f"workspace {ws} is in use (e2 studio open?) and has no project yet: close e2 studio and retry") from None
-    cm33 = os.path.join(REPO, "firmware", "cm33_demo")
+            raise RuntimeError(f"workspace {ws} is in use (e2 studio open?) and lacks {', '.join(n for _, n in missing)}: close e2 studio and retry") from None
     exe = os.path.join(cfg["e2studio"], "eclipse", "e2studioc.exe")
-    log(f"workspace {ws} has no project yet -> importing (headless e2 studio, ~30 s)")
+    log(f"workspace lacks {', '.join(n for _, n in missing)} -> importing (headless e2 studio, ~30 s)")
     os.makedirs(ws, exist_ok=True)
-    r = subprocess.run([exe, "-nosplash", "-data", ws, "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild",
-                        "-import", cm33, "-import", cfg["project_dir"], "-no-indexer"],
-                       capture_output=True, text=True, timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    if not os.path.isdir(marker):
-        raise RuntimeError("headless import did not register the project: " + (r.stdout + r.stderr)[-800:])
-    log("project imported into the workspace")
+    args = [exe, "-nosplash", "-data", ws, "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild",
+            "-import", os.path.join(REPO, "firmware", "cm33_demo")]
+    for pdir, _ in missing:
+        args += ["-import", pdir]
+    r = subprocess.run(args + ["-no-indexer"], capture_output=True, text=True, timeout=600,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    still = [n for _, n in missing if not os.path.isdir(os.path.join(meta, n))]
+    if still:
+        raise RuntimeError(f"headless import did not register {', '.join(still)}: " + (r.stdout + r.stderr)[-800:])
+    log("project(s) imported into the workspace")
 
 
-def patch_elf(cfg, log):
-    """post-process a copy of the ELF e2 studio built (zero-size DDR PT_LOADs -> PT_NULL)"""
-    src = os.path.join(cfg["project_dir"], "Debug", PROJ + ".elf")
+def patch_elf(cfg, log, core=0):
+    """post-process a copy of the ELF e2 studio built (zero-size DDR PT_LOADs -> PT_NULL;
+    core1 additionally nulls the 4-byte PT_LOAD at 0x081BFFFC, as build.ps1 does)"""
+    pdir = cfg["project_dir"] if core == 0 else cfg["project1_dir"]
+    fw = cfg["fw"] if core == 0 else cfg["fw1"]
+    src = os.path.join(pdir, "Debug", PROJ + ".elf")      # the artifact keeps the core0 name in both projects
     if not os.path.isfile(src):
         raise RuntimeError(f"ELF not found: {src}\nBuild first: Project -> Build Project (Ctrl+B) in e2 studio")
     age = int(time.time() - os.path.getmtime(src))
-    log(f"ELF built {age // 60} min {age % 60} s ago")
-    dst = os.path.join(os.environ.get("TEMP", "."), cfg["fw"])
+    log(f"core{core} ELF built {age // 60} min {age % 60} s ago")
+    dst = os.path.join(os.environ.get("TEMP", "."), fw)
     with open(src, "rb") as f, open(dst, "wb") as g:
         g.write(f.read())
-    tool = os.path.join(REPO, "firmware", "tools", "patch-elf-phdr.py")
-    r = subprocess.run([sys.executable, tool, dst], capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError("patch-elf-phdr failed:\n" + r.stdout + r.stderr)
+    tools = os.path.join(REPO, "firmware", "tools")
+    steps = [[sys.executable, os.path.join(tools, "patch-elf-phdr.py"), dst]]
+    if core == 1:
+        steps.append([sys.executable, os.path.join(tools, "null_phdr_at.py"), dst, "0x081BFFFC"])
+    for cmd in steps:
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            raise RuntimeError(os.path.basename(cmd[1]) + " failed:\n" + r.stdout + r.stderr)
     return dst
+
+
+def have_elf(cfg, core):
+    pdir = cfg["project_dir"] if core == 0 else cfg.get("project1_dir", "")
+    return bool(pdir) and os.path.isfile(os.path.join(pdir, "Debug", PROJ + ".elf"))
 
 
 # ------------------------------------------------------------------ GUI
@@ -425,18 +494,20 @@ class App(tk.Tk):
         row(2, "密碼 / password", "password", show="*")
         self.v["remember"] = tk.BooleanVar(value=bool(self.cfg.get("remember")))
         ttk.Checkbutton(f, text="記住密碼（存在 %APPDATA%\\cr8-debug，只有你這個帳號讀得到）", variable=self.v["remember"]).grid(row=3, column=1, sticky="w")
-        row(4, "韌體檔名 / fw on EVK", "fw")
-        row(5, "e² studio 專案 / project", "project_dir", browse="dir")
-        row(6, "e² studio 安裝目錄", "e2studio", browse="dir")
-        row(7, "工作區 / workspace", "workspace", browse="dir")
+        row(4, "core0 韌體 / fw on EVK", "fw")
+        row(5, "core0 專案 / project", "project_dir", browse="dir")
+        row(6, "core1 韌體 / fw1 on EVK", "fw1")
+        row(7, "core1 專案 / project1（可空）", "project1_dir", browse="dir")
+        row(8, "e² studio 安裝目錄", "e2studio", browse="dir")
+        row(9, "工作區 / workspace", "workspace", browse="dir")
         self.v["auto_stop"] = tk.BooleanVar(value=bool(self.cfg.get("auto_stop", True)))
-        ttk.Checkbutton(f, text="關掉 e² studio 時自動收尾（resume、停 OpenOCD、斷線）", variable=self.v["auto_stop"]).grid(row=8, column=1, sticky="w")
+        ttk.Checkbutton(f, text="關掉 e² studio 時自動收尾（resume、停 OpenOCD、斷線）", variable=self.v["auto_stop"]).grid(row=10, column=1, sticky="w")
 
         b = ttk.Frame(f)
-        b.grid(row=9, column=0, columnspan=3, pady=8, sticky="w")
+        b.grid(row=11, column=0, columnspan=3, pady=8, sticky="w")
         self.btn_go = ttk.Button(b, text="連線並開始除錯 / Connect & Debug", command=self.go)
         self.btn_go.pack(side="left", padx=3)
-        self.btn_redeploy = ttk.Button(b, text="重新部署韌體 / Redeploy", command=self.redeploy)
+        self.btn_redeploy = ttk.Button(b, text="重新部署韌體 / Redeploy (core0+core1)", command=self.redeploy)
         self.btn_redeploy.pack(side="left", padx=3)
         self.btn_stop = ttk.Button(b, text="收尾 / Stop", command=self.stop)
         self.btn_stop.pack(side="left", padx=3)
@@ -444,11 +515,11 @@ class App(tk.Tk):
         self.btn_install.pack(side="left", padx=3)
 
         self.txt = tk.Text(f, height=16, width=96, state="disabled", font=("Consolas", 9))
-        self.txt.grid(row=10, column=0, columnspan=3, sticky="nsew")
-        f.rowconfigure(10, weight=1)
+        self.txt.grid(row=12, column=0, columnspan=3, sticky="nsew")
+        f.rowconfigure(12, weight=1)
         f.columnconfigure(1, weight=1)
         self.status = tk.StringVar(value="ready")
-        ttk.Label(f, textvariable=self.status).grid(row=11, column=0, columnspan=3, sticky="w")
+        ttk.Label(f, textvariable=self.status).grid(row=13, column=0, columnspan=3, sticky="w")
 
     def _browse(self, var, kind):
         p = filedialog.askdirectory(initialdir=var.get() or os.path.expanduser("~"))
@@ -536,7 +607,9 @@ class App(tk.Tk):
             if not self.evk.installed():
                 self.log("EVK not set up yet -> installing (once)")
                 self.evk.install(DEMO_ELF, find_tarball())
-            self.evk.start_firmware(self.cfg["fw"])
+            self.evk.start_firmware(self.cfg["fw"], self.cfg.get("fw1") or None)
+            if self.evk.check_blackboxes():
+                raise RuntimeError("a CR8 core is sitting in its abort handler: press Redeploy (restarts the pair), then Connect again")
             self.evk.start_openocd()
             for p in PORTS:
                 self.evk.forward(p)
@@ -546,7 +619,8 @@ class App(tk.Tk):
             if not os.path.isfile(exe):
                 raise RuntimeError(f"e2 studio not found: {exe}")
             ensure_workspace(self.cfg, self.log)
-            self.log("starting e2 studio ... Run -> Debug Configurations -> GDB Hardware Debugging -> 'CR8 core0 via OpenOCD dmem'")
+            names = " / ".join(f"'{LAUNCH[c][:-7]}'" for c, _, _, _ in projects(self.cfg))
+            self.log(f"starting e2 studio ... Run -> Debug Configurations -> GDB Hardware Debugging -> {names}")
             self.e2s = subprocess.Popen([exe, "-data", self.cfg["workspace"]])
             if self.cfg.get("auto_stop", True):
                 threading.Thread(target=self._watch_e2s, daemon=True).start()
@@ -560,7 +634,8 @@ class App(tk.Tk):
         def work():
             if self.evk:
                 self.evk.stop_openocd()
-                self.log(f"CR8 core0: {self.evk.core0_state()}")
+                self.log(f"CR8 core0: {self.evk.core0_state()}, core1: {self.evk.core1_state()}")
+                self.evk.check_blackboxes()
                 self.evk.close()
                 self.evk = None
                 self.log("disconnected")
@@ -577,8 +652,9 @@ class App(tk.Tk):
 
         def work():
             elf = patch_elf(self.cfg, self.log)
+            elf1 = patch_elf(self.cfg, self.log, 1) if have_elf(self.cfg, 1) else None
             self._connect()
-            self.evk.redeploy(elf, self.cfg["fw"])
+            self.evk.redeploy(elf, self.cfg["fw"], elf1, self.cfg.get("fw1"))
             self.log("redeployed; press Debug again in e2 studio")
         self._work(work)
 
@@ -591,13 +667,16 @@ class App(tk.Tk):
 
         def work():
             # prefer the ELF built here (its sources resolve in this e2 studio) over the repo's prebuilt one
-            elf = DEMO_ELF
-            if os.path.isfile(os.path.join(self.cfg["project_dir"], "Debug", PROJ + ".elf")):
-                elf = patch_elf(self.cfg, self.log)
+            elf = patch_elf(self.cfg, self.log) if have_elf(self.cfg, 0) else DEMO_ELF
             self._connect()
             self.evk.install(elf, find_tarball())
+            if have_elf(self.cfg, 1):
+                elf1 = patch_elf(self.cfg, self.log, 1)
+                self.evk.put(elf1, f"/tmp/{self.cfg['fw1']}")
+                self.evk.run(f"install -m 644 /tmp/{self.cfg['fw1']} /lib/firmware/{self.cfg['fw1']}", sudo=True)
+                self.log(f"installed core1 firmware {self.cfg['fw1']}")
             if elf != DEMO_ELF:
-                self.log("installed the ELF built here; it is loaded on the next core0 (re)start -> press Redeploy to run it now")
+                self.log("installed the ELF(s) built here; loaded on the next (re)start -> press Redeploy to run them now")
         self._work(work)
 
     def _on_close(self):

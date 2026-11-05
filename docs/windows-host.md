@@ -41,6 +41,38 @@ Then: double-click **CR8 Debug App**, fill in IP / user / password, press **Conn
 in e² studio: Run, Debug Configurations, GDB Hardware Debugging, **CR8 core0 via OpenOCD
 dmem**, Debug.
 
+## Two cores at once
+
+The EVK runs two Cortex-R8 cores; OpenOCD exposes them as two targets with their own gdb
+ports (3333 core0, 3334 core1) and the app forwards both. The second project is optional:
+
+* `firmware\tools\build.ps1 core1-uart` builds the core1 firmware (`cr8_core1_demo.elf`) and
+  names its Eclipse project `rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo`, so it can sit next
+  to the core0 project in one workspace (both keep the artifact name
+  `Debug\rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo.elf`).
+* The app's "core1 專案 / project1" field points at it (default
+  `firmware\build\core1-uart`; leave it empty for core0 only). On **Connect & Debug** the app
+  imports both projects, writes both launch files (`CR8 core0 via OpenOCD dmem`,
+  `CR8 core1 via OpenOCD dmem`) and starts core1 too when it is offline and its firmware is
+  on the board.
+* In e² studio start both configurations, one after the other: two debug sessions appear in
+  the Debug view, each with its own breakpoints, stepping and variables.
+* **Redeploy** installs and restarts both ELFs together. The CR8 cluster has no per-core
+  reset, so any firmware change is a restart of the pair (both down, core0 up, core1 up).
+
+Verified on Windows through the app's tunnels, two `arm-none-eabi-gdb.exe` sessions at the
+same time: core1 halted at `r8_blackbox_pump` for 8 s while core0's 1 kHz tick kept
+counting, then core0 halted at `angle_to_pulse_us` as well (both halted), then both detached
+and both cores were running with clean black boxes. One caveat from that testing: in one of
+about ten dual-session rounds both cores took a prefetch abort at the same moment (black box
+fault_type 3 on both, garbage PCs, one core halted at a breakpoint and the other resuming);
+it did not reproduce in five replays of the same sequence, including a sweep of attach/detach
+overlaps, so the cause is unknown. The app now reads both black boxes on Connect and on
+Stop and tells you to press Redeploy (pair restart) if a core sits in its abort handler.
+Detaching one session resumes only that
+core (the `gdb-detach` handler in `cr8-dmem.cfg` is per target); closing e² studio or the app
+resumes both and shuts OpenOCD down.
+
 ## Why an in-process tunnel
 
 Windows OpenSSH has no ControlMaster, so the Linux design (one password, many `ssh` calls on
@@ -62,7 +94,8 @@ have a working `ssh.exe` forward.
 | `e2studio/windows/cr8_debug_app.py` | the app (Tk + paramiko) |
 | `e2studio/windows/install-host.ps1` | one-time host setup, Desktop shortcuts |
 | `e2studio/windows/common.ps1`, `cr8-debug.ps1`, `cr8-stop.ps1`, `cr8-redeploy.ps1` | `ssh.exe`-based launchers (see above) |
-| `firmware/tools/build.ps1` | Windows port of `build.sh` (headless e² studio build of a variant) |
+| `firmware/tools/build.ps1` | Windows port of `build.sh` (headless e² studio build of a variant; core1 variants get their own project name) |
+| `e2studio/CR8 core1 via OpenOCD dmem.launch` | second launch configuration, gdb port 3334, core1 project |
 | `debug/session.sh` | board-side single-session helper used by the `.ps1` launchers |
 
 ## Known limits
