@@ -82,6 +82,10 @@ firmware name, project, workspace). Delete it to be asked again.
 3. **Never stop or restart the CR8 while OpenOCD is running.** OpenOCD polls the debug
    registers; once the cluster goes down that poll hangs the bus (same outcome). `CR8 Debug
    STOP` first, or use `CR8 Redeploy`, which does it in the right order.
+4. **Stop OpenOCD gracefully, never with a core left halted.** A core that stays halted after
+   its debugger is killed, and is then restarted by the next OpenOCD from stale state, took an
+   undefined-instruction exception on both CR8 cores once. The scripts resume every target
+   and `shutdown` over the telnet port before falling back to `pkill`; do the same by hand.
 
 While the core is halted the GPT PWM outputs stay at their last duty cycle, the firmware
 tick stops and rpmsg clients on Linux time out. Flight hardware: props off.
