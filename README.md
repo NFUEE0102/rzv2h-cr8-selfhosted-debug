@@ -20,7 +20,7 @@ The repository is complete: firmware sources and build system, the debug tooling
 board, the e² studio integration for the host (Linux and Windows), and a demo firmware with a
 planted bug to walk through. Both CR8 cores can be debugged at the same time.
 
-**Current release: v1.0.0** (Ubuntu and Windows hosts, both cores) -- see the
+**Current release: v1.0.1** (Ubuntu and Windows hosts, both cores, Windows UI in zh-TW/en/ja) -- see the
 [Releases](https://github.com/NFUEE0102/rzv2h-cr8-selfhosted-debug/releases) page for the
 prebuilt OpenOCD and demo firmware.
 
