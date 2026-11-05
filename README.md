@@ -26,6 +26,7 @@ through.
 |---|---|
 | RZ/V2H EVK | Ubuntu with the 6.10 kernel that has CR8 remoteproc support (`/sys/class/remoteproc/remoteproc1` = `cr8-core0`). **DSW1-7 ON** (MD_BOOT3 = 1), then **power-cycle** — the pin is latched at power-on reset. A user with sudo (the stock `ubuntu` account works). |
 | Linux host | e² studio 2025-01 with the RZ/V FSP 3.1.0 pack and its bundled GNU Arm 13.3 toolchain (for building the firmware; debugging a prebuilt ELF needs only e² studio), `python3`, `ssh`, `gdb-multiarch` (installed by the host script). Tested on Ubuntu 24.04 with an XFCE desktop. |
+| Windows host | e² studio 2025-01 + FSP 3.1.0 under `C:\Renesas`, Python 3 from python.org (`py` launcher), `paramiko` (installed by the host script). No SSH key, no `ssh.exe` needed. See [docs/windows-host.md](docs/windows-host.md). |
 | Network | Host reaches the EVK over SSH with a password. No keys required. |
 
 ## Quick start (three steps)
@@ -59,6 +60,12 @@ through.
 
 The first SSH connection of a session asks for the password once; every later command of
 that session reuses the connection (OpenSSH ControlMaster), so no `sshpass` and no keys.
+
+**Windows host instead of Linux:** run `powershell -ExecutionPolicy Bypass -File
+e2studio\windows\install-host.ps1` once, then double-click **CR8 Debug App** on the Desktop.
+One window asks for the EVK IP, user and password, logs in, installs the EVK side itself if
+step 1 was skipped, starts firmware + OpenOCD, opens the gdb ports through its own SSH
+connection and launches e² studio. Details: [docs/windows-host.md](docs/windows-host.md).
 
 ## Desktop buttons
 
@@ -96,9 +103,9 @@ tick stops and rpmsg clients on Linux time out. Flight hardware: props off.
 |---|---|
 | `firmware/` | CR8 firmware: e² studio base project, variant transforms, FSP patches, headless build and deploy tools. See [docs/build-firmware.md](docs/build-firmware.md). |
 | `debug/` | Board-side debug stack: `cr8-dmem.cfg` (OpenOCD), `r8ocd.sh` (guarded start), `r8dbg.py` (pure-Python halt/step reference), OpenOCD patch and build script, `install-on-evk.sh`. |
-| `e2studio/` | Host side: `install-host.sh`, `cr8-debug.sh`, `cr8-redeploy.sh`, shared `cr8-common.sh`, the `.launch` file, desktop launcher templates. |
+| `e2studio/` | Host side: `install-host.sh`, `cr8-debug.sh`, `cr8-redeploy.sh`, shared `cr8-common.sh`, the `.launch` file, desktop launcher templates; `windows/` holds the Windows app (`cr8_debug_app.py`), `install-host.ps1` and the `ssh.exe`-based launchers. |
 | `examples/demo_servo/` | Demo firmware source, prebuilt `cr8_demo.elf`, English walkthrough and Traditional Chinese presenter script. |
-| `docs/` | [How it works and what we had to discover](docs/self-hosted-debug.md), [EVK install details](docs/install-evk.md), [firmware build](docs/build-firmware.md). |
+| `docs/` | [How it works and what we had to discover](docs/self-hosted-debug.md), [EVK install details](docs/install-evk.md), [firmware build](docs/build-firmware.md), [Windows host](docs/windows-host.md). |
 
 ## Status
 
@@ -113,7 +120,14 @@ attach, registers, `stepi`/Step Over, memory, hardware breakpoints with conditio
 and Terminate both leave the core running, redeploy loop. CR8 core1 is verified too (second
 target, gdb port 3334; halting one core leaves the other running). The CM33 cannot be reached
 this way: its debug registers live on its private bus behind the DAP's AHB-AP and are not on
-the system bus (the CST ROM table lists CA55 and CR8 only). Not yet tried: a Windows host,
+the system bus (the CST ROM table lists CA55 and CR8 only).
+
+Windows host (Windows 10, e² studio 2025-01, Python 3.13): verified with the clickable app,
+`e2studio/windows/cr8_debug_app.py`: password login, EVK-side install from the app, firmware
++ OpenOCD start, `arm-none-eabi-gdb.exe` attach / conditional hardware breakpoint / step /
+variables through the app's own tunnel, redeploy of a Windows-built ELF
+(`firmware/tools/build.ps1`), graceful stop. Port forwards made by Windows `ssh.exe` did not
+work with gdb (connections dropped), which is why the app tunnels in-process. Not yet tried:
 building the project from the e² studio GUI instead of the headless script.
 
 ## Roadmap: FSP 4.3.0
@@ -152,6 +166,10 @@ J-Link。
 2. **開發機（Linux + e² studio 2025-01 + FSP 3.1.0）**：clone 本專案，執行
    `bash e2studio/install-host.sh`，依提示輸入 EVK 的 IP、帳號、密碼；它會裝 `gdb-multiarch`、
    建置示範韌體、匯入 e² studio 工作區、放三顆桌面按鈕。
+   **Windows 開發機**：改跑 `powershell -ExecutionPolicy Bypass -File e2studio\windows\install-host.ps1`
+   一次，之後點桌面的 **CR8 Debug App**：一個視窗輸入板子 IP、帳號、密碼 → 登入 → 板子端沒裝過就
+   自動上傳安裝 → 啟動韌體與 OpenOCD → 用同一條 SSH 連線開出 gdb 埠 → 開 Windows 的 e² studio；
+   關掉 e² studio 就自動收尾。不需要金鑰。見 [docs/windows-host.md](docs/windows-host.md)。
 3. 點桌面的 **CR8 Debug (e2 studio)** → 在 e² studio 裡 Run → Debug Configurations →
    GDB Hardware Debugging → **CR8 core0 via OpenOCD dmem** → Debug。
 

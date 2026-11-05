@@ -32,10 +32,10 @@ fi
 echo "== $DEST"
 mkdir -p "$DEST/board"
 install -m 644 "$HERE/cr8-dmem.cfg" "$DEST/"
-install -m 755 "$HERE/r8ocd.sh" "$HERE/r8dbg.py" "$DEST/"
+install -m 755 "$HERE/r8ocd.sh" "$HERE/r8dbg.py" "$HERE/session.sh" "$DEST/"
 install -m 755 "$REPO"/firmware/tools/board/*.sh "$DEST/board/"
 install -m 755 "$REPO"/firmware/tools/board/bb.py "$DEST/board/"
-sudo apt-get install -y -q busybox >/dev/null 2>&1 || true
+sudo apt-get install -y -q busybox netcat-openbsd >/dev/null 2>&1 || true   # session.sh uses nc
 
 echo "== demo firmware"
 if [ -f "$REPO/examples/demo_servo/cr8_demo.elf" ]; then
