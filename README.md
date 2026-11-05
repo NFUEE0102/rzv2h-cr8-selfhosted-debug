@@ -70,7 +70,8 @@ e2studio\windows\install-host.ps1` once, then double-click **CR8 Debug App** on 
 One window asks for the EVK IP, user and password, logs in, installs the EVK side itself if
 step 1 was skipped, starts firmware + OpenOCD, opens the gdb ports through its own SSH
 connection and launches e² studio. Both CR8 cores can be debugged at the same time (two
-launch configurations, ports 3333 and 3334). Details:
+launch configurations, ports 3333 and 3334). UI in Traditional Chinese, English and
+Japanese. Details:
 [docs/windows-host.md](docs/windows-host.md).
 
 ## Desktop buttons
@@ -182,7 +183,7 @@ J-Link。
    一次，之後點桌面的 **CR8 Debug App**：一個視窗輸入板子 IP、帳號、密碼 → 登入 → 板子端沒裝過就
    自動上傳安裝 → 啟動韌體與 OpenOCD → 用同一條 SSH 連線開出 gdb 埠 → 開 Windows 的 e² studio；
    關掉 e² studio 就自動收尾。不需要金鑰。兩顆 R8 可同時除錯（core0 走 3333、core1 走 3334，
-   e² studio 開兩個 Debug 設定）。見 [docs/windows-host.md](docs/windows-host.md)。
+   e² studio 開兩個 Debug 設定）。介面有繁中、英文、日文三種語言。見 [docs/windows-host.md](docs/windows-host.md)。
 3. 點桌面的 **CR8 Debug (e2 studio)** → 在 e² studio 裡 Run → Debug Configurations →
    GDB Hardware Debugging → **CR8 core0 via OpenOCD dmem** → Debug。
 

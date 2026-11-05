@@ -41,6 +41,16 @@ Then: double-click **CR8 Debug App**, fill in IP / user / password, press **Conn
 in e² studio: Run, Debug Configurations, GDB Hardware Debugging, **CR8 core0 via OpenOCD
 dmem**, Debug.
 
+## Languages
+
+The app's labels, buttons, log lines and error dialogs come in Traditional Chinese, English
+and Japanese. It starts in the Windows display language (zh-TW for Chinese, ja for Japanese,
+English otherwise); the "Language" box at the top right switches at once and the choice is
+stored in the config (`"lang"`). Output of the board-side scripts (`start-cr8.sh`,
+`install-on-evk.sh`, black-box dump) is shown as it comes. All strings are in the `STR`
+table at the top of `cr8_debug_app.py`; adding a language is one more column there plus an
+entry in `LANGS`.
+
 ## Two cores at once
 
 The EVK runs two Cortex-R8 cores; OpenOCD exposes them as two targets with their own gdb
