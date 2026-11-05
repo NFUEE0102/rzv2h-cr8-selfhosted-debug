@@ -20,6 +20,21 @@ Buttons: **Connect & Debug** (the above), **Redeploy** (post-processes the ELF e
 built, uploads it, restarts core0, restarts OpenOCD), **Stop** (graceful tear-down),
 **Install on EVK** (step 3 by hand).
 
+## Three ways to start it
+
+| | What you need | How |
+|---|---|---|
+| **CR8DebugApp.exe** | nothing (Python and paramiko are inside) | download it from the Releases page into the unzipped repository folder (next to README.md) and double-click it, or double-click `CR8-Debug-App.cmd` |
+| `CR8-Debug-App.cmd` | Python 3 (python.org) | double-click; installs paramiko on first run, then starts the app |
+| Desktop shortcut | after `windows-setup.cmd` | **CR8 Debug App** on the Desktop |
+
+The EXE looks for `debug/install-on-evk.sh` in its own folder and up to three parents, so it
+can live in the repository root or in `e2studio\windows\`; alone in some other folder it
+shows an error and exits. It is built with `e2studio\windows\build-exe.ps1` (PyInstaller,
+one file, no console; about 16 MB) and attached to each release. Building the demo firmware
+still needs Python (the FSP pack patch and the headless build driver), so `windows-setup.cmd`
+stays a Python job; debugging a project that is already built does not.
+
 ## Setup (once)
 
 ```powershell

@@ -10,3 +10,7 @@ firmware/**/.settings/
 __pycache__/
 *.pyc
 *.log
+
+# PyInstaller output (attached to the GitHub release instead)
+CR8DebugApp.exe
+*.spec

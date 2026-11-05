@@ -38,8 +38,27 @@ except ImportError:  # pragma: no cover
     messagebox.showerror("CR8 Debug", "paramiko is missing:\n\n    py -3 -m pip install paramiko")
     sys.exit(1)
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
+import struct
+
+
+def find_repo():
+    """the repository folder: two levels above this script, or, for the PyInstaller EXE
+    (CR8DebugApp.exe placed anywhere inside the unzipped repository), the nearest parent
+    that holds debug/install-on-evk.sh"""
+    if getattr(sys, "frozen", False):
+        d = os.path.dirname(os.path.abspath(sys.executable))
+        for _ in range(4):
+            if os.path.isfile(os.path.join(d, "debug", "install-on-evk.sh")):
+                return d
+            d = os.path.dirname(d)
+        tk.Tk().withdraw()
+        messagebox.showerror("CR8 Debug", "CR8DebugApp.exe must sit inside the unzipped rzv2h-cr8-selfhosted-debug "
+                             "folder (next to README.md), because it needs debug/, firmware/ and e2studio/ from it.")
+        sys.exit(1)
+    return os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+
+
+REPO = find_repo()
 CONFIG = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "cr8-debug", "config.json")
 PROJ = "rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo"      # Eclipse name of the core0 project (also the artifact name of both)
 PROJ1 = "rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo"     # Eclipse name build.ps1 gives the core1 project
@@ -560,6 +579,33 @@ def ensure_workspace(cfg, log):
     log(T("ws_imported"))
 
 
+def postprocess_elf(path, core):
+    """in-process port of firmware/tools/patch-elf-phdr.py (+ null_phdr_at.py for core1):
+    PT_LOAD segments with filesz 0 in DDR (>= 0x40000000) become PT_NULL so remoteproc skips
+    them; for core1 the 4-byte PT_LOAD at 0x081BFFFC (core0's wait word) is NULLed too.
+    Returns the list of (index, vaddr) changed. Idempotent."""
+    with open(path, "rb") as f:
+        b = bytearray(f.read())
+    if b[:4] != b"\x7fELF" or b[4] != 1 or b[5] != 1:
+        raise RuntimeError("not an ELF32 little-endian file: " + path)
+    phoff, = struct.unpack_from("<I", b, 0x1C)
+    phentsize, = struct.unpack_from("<H", b, 0x2A)
+    phnum, = struct.unpack_from("<H", b, 0x2C)
+    changed = []
+    for i in range(phnum):
+        o = phoff + i * phentsize
+        ptype, _, vaddr, paddr, filesz, _ = struct.unpack_from("<6I", b, o)
+        if ptype != 1:
+            continue
+        if (filesz == 0 and paddr >= 0x40000000) or (core == 1 and vaddr == 0x081BFFFC):
+            struct.pack_into("<I", b, o, 0)
+            changed.append((i, vaddr))
+    if changed:
+        with open(path, "wb") as f:
+            f.write(b)
+    return changed
+
+
 def patch_elf(cfg, log, core=0):
     """post-process a copy of the ELF e2 studio built (zero-size DDR PT_LOADs -> PT_NULL;
     core1 additionally nulls the 4-byte PT_LOAD at 0x081BFFFC, as build.ps1 does)"""
@@ -573,14 +619,10 @@ def patch_elf(cfg, log, core=0):
     dst = os.path.join(os.environ.get("TEMP", "."), fw)
     with open(src, "rb") as f, open(dst, "wb") as g:
         g.write(f.read())
-    tools = os.path.join(REPO, "firmware", "tools")
-    steps = [[sys.executable, os.path.join(tools, "patch-elf-phdr.py"), dst]]
-    if core == 1:
-        steps.append([sys.executable, os.path.join(tools, "null_phdr_at.py"), dst, "0x081BFFFC"])
-    for cmd in steps:
-        r = subprocess.run(cmd, capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError(T("tool_failed", tool=os.path.basename(cmd[1]), out=r.stdout + r.stderr))
+    try:
+        postprocess_elf(dst, core)
+    except (OSError, RuntimeError, struct.error) as e:
+        raise RuntimeError(T("tool_failed", tool="postprocess_elf", out=str(e))) from None
     return dst
 
 

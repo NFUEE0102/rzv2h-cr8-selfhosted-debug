@@ -65,8 +65,10 @@ prebuilt OpenOCD and demo firmware.
 The first SSH connection of a session asks for the password once; every later command of
 that session reuses the connection (OpenSSH ControlMaster), so no `sshpass` and no keys.
 
-**Windows host instead of Linux:** run `powershell -ExecutionPolicy Bypass -File
-e2studio\windows\install-host.ps1` once, then double-click **CR8 Debug App** on the Desktop.
+**Windows host instead of Linux:** unzip, download `CR8DebugApp.exe` from the Releases page
+into that folder and double-click it (or `CR8-Debug-App.cmd`; needs Python 3). To build the
+demo firmware on the PC too, run `windows-setup.cmd` once (headless e² studio build, Desktop
+shortcuts).
 One window asks for the EVK IP, user and password, logs in, installs the EVK side itself if
 step 1 was skipped, starts firmware + OpenOCD, opens the gdb ports through its own SSH
 connection and launches e² studio. Both CR8 cores can be debugged at the same time (two
@@ -179,8 +181,8 @@ J-Link。
 2. **開發機（Linux + e² studio 2025-01 + FSP 3.1.0）**：clone 本專案，執行
    `bash e2studio/install-host.sh`，依提示輸入 EVK 的 IP、帳號、密碼；它會裝 `gdb-multiarch`、
    建置示範韌體、匯入 e² studio 工作區、放三顆桌面按鈕。
-   **Windows 開發機**：改跑 `powershell -ExecutionPolicy Bypass -File e2studio\windows\install-host.ps1`
-   一次，之後點桌面的 **CR8 Debug App**：一個視窗輸入板子 IP、帳號、密碼 → 登入 → 板子端沒裝過就
+   **Windows 開發機**：解壓後，從 Releases 頁下載 `CR8DebugApp.exe` 放進資料夾直接點（或點
+   `CR8-Debug-App.cmd`，需要 Python 3）；要在 PC 上建韌體就跑一次 `windows-setup.cmd`。**CR8 Debug App**：一個視窗輸入板子 IP、帳號、密碼 → 登入 → 板子端沒裝過就
    自動上傳安裝 → 啟動韌體與 OpenOCD → 用同一條 SSH 連線開出 gdb 埠 → 開 Windows 的 e² studio；
    關掉 e² studio 就自動收尾。不需要金鑰。兩顆 R8 可同時除錯（core0 走 3333、core1 走 3334，
    e² studio 開兩個 Debug 設定）。介面有繁中、英文、日文三種語言。見 [docs/windows-host.md](docs/windows-host.md)。
