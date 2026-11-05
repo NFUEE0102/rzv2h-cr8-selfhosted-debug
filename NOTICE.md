@@ -27,8 +27,17 @@ Electronics Corp. ... No other uses are authorized"), with co-copyright eForce C
 - `firmware/base/src/OpenAMP_RPMsg_cfg.h`, `rpmsg_demo.c`, `rsc_table.c`, `rsc_table.h`, `sys_init.c`
 - `firmware/cm33_demo/src/platform_info.h`
 
-They come from the Renesas RZ/V2H Multi-OS package / RDK sample projects that Renesas itself
-publishes on GitHub; the headers are kept unchanged and the files are used only with the RZ/V2H.
-They are NOT covered by this repository's BSD-3-Clause licence. Before making this repository
-public, either keep these files as published by Renesas under their terms, or replace them with
-a setup step that fetches them from Renesas' own repository.
+They come from the RDK template projects that Renesas itself publishes on GitHub, in the
+`renesas-rdk` organisation, as public repositories without a separate LICENSE file:
+
+- https://github.com/renesas-rdk/rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo (`src/OpenAMP_RPMsg_cfg.h`, `rpmsg_demo.c`, `rsc_table.c`, `rsc_table.h`, `sys_init.c`)
+- https://github.com/renesas-rdk/rzv2h_rdk_cm33_rpmsg_linux_rtos_demo (`src/platform_info.h`)
+
+Our `rsc_table.c` and `sys_init.c` are byte-identical to those; `OpenAMP_RPMsg_cfg.h`,
+`rsc_table.h` and `platform_info.h` differ only in configuration values / line endings;
+`rpmsg_demo.c` carries our additions (the demo's status words and the black-box hooks). The
+Renesas headers are kept unchanged and the files are used only with the RZ/V2H, as the header
+requires. They are NOT covered by this repository's BSD-3-Clause licence: Renesas' header text
+applies to them. If you prefer not to redistribute them at all, delete the five `firmware/base/src`
+files and `firmware/cm33_demo/src/platform_info.h` and copy them from the two repositories above
+before building.
