@@ -17,8 +17,12 @@ board itself — also when the board is sealed inside an airframe.
 ```
 
 The repository is complete: firmware sources and build system, the debug tooling for the
-board, the e² studio integration for the host, and a demo firmware with a planted bug to walk
-through.
+board, the e² studio integration for the host (Linux and Windows), and a demo firmware with a
+planted bug to walk through. Both CR8 cores can be debugged at the same time.
+
+**Current release: v1.0.0** (Ubuntu and Windows hosts, both cores) -- see the
+[Releases](https://github.com/NFUEE0102/rzv2h-cr8-selfhosted-debug/releases) page for the
+prebuilt OpenOCD and demo firmware.
 
 ## Prerequisites
 
