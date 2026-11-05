@@ -182,16 +182,28 @@ class Evk:
         if rc != 0:
             raise RuntimeError("install-on-evk.sh failed (see log)")
 
+    def start_cr8(self, fw):
+        """(re)start core0 with fw. The CR8 cluster has no per-core reset: when core1 is running,
+        a single-core restart is refused by start-cr8.sh, so both cores go down and up again
+        (restart-r8-pair.sh). Never call this while OpenOCD runs."""
+        core1_state, core1_fw = self.run("cat /sys/class/remoteproc/remoteproc2/state /sys/class/remoteproc/remoteproc2/firmware")[1].split()[:2]
+        if core1_state == "running":
+            self.log(f"core1 is running ({core1_fw}) -> restarting the pair (no per-core reset on the CR8)")
+            rc, out = self.run(f"{self.ocd}/board/restart-r8-pair.sh {fw} {core1_fw}", sudo=True, timeout=90)
+        else:
+            rc, out = self.run(f"{self.ocd}/board/start-cr8.sh {fw}", sudo=True, timeout=90)
+        for line in out.splitlines()[-4:]:
+            self.log("  " + line)
+        if self.core0_state() != "running" or (core1_state != "running" and rc != 0):
+            raise RuntimeError("CR8 core0 did not come up (see log)")
+
     def start_firmware(self, fw):
         st = self.core0_state()
         if st == "running":
             self.log(f"CR8 core0 running ({self.run('cat /sys/class/remoteproc/remoteproc1/firmware')[1]})")
             return
         self.log(f"CR8 core0 is '{st}' -> starting {fw}")
-        rc, out = self.run(f"{self.ocd}/board/start-cr8.sh {fw}", sudo=True)
-        self.log("  " + out.splitlines()[-1] if out else "  (no output)")
-        if self.core0_state() != "running":
-            raise RuntimeError("CR8 core0 did not come up")
+        self.start_cr8(fw)
 
     def start_openocd(self):
         if self.ocd_running():
@@ -229,10 +241,10 @@ class Evk:
         self.stop_openocd()
         self.log(f"uploading {os.path.basename(patched_elf)} ...")
         self.put(patched_elf, f"/tmp/{fw}")
-        rc, out = self.run(f"install -m 644 /tmp/{fw} /lib/firmware/{fw} && {self.ocd}/board/start-cr8.sh {fw}", sudo=True)
-        self.log("  " + (out.splitlines()[-1] if out else "(no output)"))
-        if self.core0_state() != "running":
-            raise RuntimeError("CR8 core0 did not come up with the new firmware")
+        rc, out = self.run(f"install -m 644 /tmp/{fw} /lib/firmware/{fw}", sudo=True)
+        if rc != 0:
+            raise RuntimeError("could not install the firmware: " + out)
+        self.start_cr8(fw)
         if was:
             self.start_openocd()
 
