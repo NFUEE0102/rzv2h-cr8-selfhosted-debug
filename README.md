@@ -106,8 +106,11 @@ the next run asks again unless the password is stored in the config.
 
 Verified on an RZ/V2H EVK (Ubuntu, kernel 6.10.14) with e² studio 2025-01 on Ubuntu 24.04:
 attach, registers, `stepi`/Step Over, memory, hardware breakpoints with conditions, Disconnect
-and Terminate both leave the core running, redeploy loop. Not yet tried: CR8 core1, a Windows
-host, building the project from the e² studio GUI instead of the headless script.
+and Terminate both leave the core running, redeploy loop. CR8 core1 is verified too (second
+target, gdb port 3334; halting one core leaves the other running). The CM33 cannot be reached
+this way: its debug registers live on its private bus behind the DAP's AHB-AP and are not on
+the system bus (the CST ROM table lists CA55 and CR8 only). Not yet tried: a Windows host,
+building the project from the e² studio GUI instead of the headless script.
 
 ## Roadmap: FSP 4.3.0
 

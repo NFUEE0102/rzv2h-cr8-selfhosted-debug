@@ -145,9 +145,35 @@ ETF in the CST; driving them from Linux has not been tried.
 
 ## Core1
 
-Core1's debug unit is at `0x1F81_2000`. Adding
-`target create rzv2h.cr8_1 cortex_r4 -dap rzv2h.dap -ap-num 0 -dbgbase 0x80812000 -coreid 1`
-with the same two event handlers and a second gdb port should work; it has not been tested.
+Core1's debug unit is at `0x1F81_2000` and is in `cr8-dmem.cfg` as the second target
+`rzv2h.cr8_1` (gdb port 3334, same unlock / HDBGen / detach handlers, `maskisr on`). Verified
+2026-11-05 on the EVK with `cr8_core1_demo.elf` on core1 and the demo on core0:
+
+* the core1 debug registers answer as soon as the cluster is up, even while core1 is still
+  held by remoteproc (`offline`): `DBGDIDR 0x3513A003`, `DBGAUTHSTATUS 0xF0`, lock engaged;
+* `r8dbg.py --core 1` halt / step / resume works, and core0's tick keeps running while core1
+  is halted (the halt is per core);
+* gdb on port 3334: hardware breakpoint in `r8_blackbox_pump`, `next`, detach resumes; a gdb
+  session on port 3333 afterwards still works; both black boxes report no fault.
+
+Two things learned the hard way while doing this:
+
+* In an event handler use `targets rzv2h.cr8_1; resume`. `rzv2h.cr8_1 resume` is not a
+  command; with that typo the gdb-detach handler failed and the core stayed halted.
+* Never kill OpenOCD while a core is halted. Both cores were left halted, the next OpenOCD
+  instance failed to examine one of them and a blind `resume` restarted them from stale state:
+  black box `fault_type = 5` (undefined instruction) on both. The launchers now resume every
+  target and `shutdown` through the telnet port before any `pkill`. Recovery is
+  `restart-r8-pair.sh` (both cores down, core0, core1).
+
+## CM33
+
+Not reachable by this method. The hardware manual puts the CM33 debug components (ITM, DWT,
+FPB, SCS, its ETM and CTI) in the CM33's own address space, reachable only through the DAP's
+AHB-AP (port 2), while only the CoreSight, CA55 and CR8 areas are "accessible via the system
+bus and APB-AP". The CST ROM table read from Linux confirms it: entries for the CST
+components, the CA55 and the CR8, none for the CM33. Debugging the CM33 from the A55 would
+need a different path (its black box in DDR still works, as before).
 
 ## While the core is halted
 

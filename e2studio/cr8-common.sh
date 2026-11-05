@@ -107,7 +107,14 @@ evk_ocd_start() {
     evk "ss -ltn 2>/dev/null | grep -q ':$PORT '" || fail "nothing listening on :$PORT on the EVK"
 }
 
+# Stop OpenOCD *gracefully*: first resume every core it may have left halted (a core left
+# halted with the debugger gone, then restarted by the next OpenOCD from stale state, took
+# an exception on both CR8 cores once), then "shutdown" over the telnet port; pkill only as
+# a fallback.
 evk_ocd_stop() {
+    evk_ocd_running || return 0
+    evk "printf 'targets rzv2h.cr8_0\nresume\ntargets rzv2h.cr8_1\nresume\nshutdown\n' | timeout 10 nc -q2 127.0.0.1 4444 >/dev/null 2>&1" || true
+    for _ in 1 2 3 4 5; do evk_ocd_running || return 0; sleep 1; done
     evk_sudo "pkill -TERM openocd" >/dev/null 2>&1
     for _ in 1 2 3 4 5; do evk_ocd_running || return 0; sleep 1; done
     evk_sudo "pkill -KILL openocd" >/dev/null 2>&1; sleep 1
