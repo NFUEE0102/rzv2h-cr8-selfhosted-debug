@@ -464,6 +464,9 @@ class App(tk.Tk):
             while True:
                 msg = self.q.get_nowait()
                 if isinstance(msg, tuple):
+                    if msg[0] == "quit":
+                        self.destroy()
+                        return
                     self.log("e2 studio closed -> stopping")
                     self.stop()
                     continue
@@ -598,16 +601,27 @@ class App(tk.Tk):
         self._work(work)
 
     def _on_close(self):
-        if self.evk and self.evk.ocd_running():
-            if messagebox.askyesno("CR8 Debug", "OpenOCD is still running on the EVK. Stop it and disconnect before closing?"):
-                try:
-                    self.evk.stop_openocd()
-                except Exception:  # noqa: BLE001
-                    pass
-        if self.evk:
-            self.evk.close()
-        self.destroy()
+        """closing the window = Stop: resume the cores, shut OpenOCD down, disconnect, then exit.
+        e2 studio (if still open) is left alone; its gdb session just reports a disconnect."""
+        if not self.evk:
+            self.destroy()
+            return
+        self.status.set("closing: stopping OpenOCD on the EVK ...")
+        for b in (self.btn_go, self.btn_redeploy, self.btn_stop, self.btn_install):
+            b.configure(state="disabled")
 
+        def work():
+            try:
+                self.evk.stop_openocd()
+                self.log(f"CR8 core0: {self.evk.core0_state()}")
+            except Exception as e:  # noqa: BLE001
+                self.log("stop failed: " + str(e))
+            finally:
+                try:
+                    self.evk.close()
+                finally:
+                    self.q.put(("quit",))
+        threading.Thread(target=work, daemon=True).start()
 
 if __name__ == "__main__":
     App().mainloop()

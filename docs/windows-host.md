@@ -12,7 +12,8 @@ e² studio (2025-01, FSP 3.1.0) installed. It needs no SSH key, no `ssh.exe`, no
    the script's own `sudo` prompts);
 4. it starts the firmware if core0 is offline, starts OpenOCD, and opens the gdb ports on this
    PC (`127.0.0.1:3333` core0, `:3334` core1) **through the same SSH connection**;
-5. it launches e² studio on the configured workspace. When you close e² studio it resumes
+5. it launches e² studio on the configured workspace. When you close e² studio, or the app
+   window itself, it resumes
    both cores, shuts OpenOCD down and disconnects.
 
 Buttons: **Connect & Debug** (the above), **Redeploy** (post-processes the ELF e² studio
