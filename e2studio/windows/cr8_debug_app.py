@@ -108,6 +108,12 @@ class Evk:
                          allow_agent=False, look_for_keys=True, banner_timeout=15)
         self.ocd = OCD_DIR.format(user=user)
         self.forwarders = []
+        # sudo is needed for firmware/OpenOCD control: check it once, now, with the password given
+        if self.run("sudo -n true")[0] != 0:
+            if not password:
+                raise RuntimeError("logged in with an SSH key, but sudo on the EVK needs the password: fill in the password field")
+            if self.run("true", sudo=True)[0] != 0:
+                raise RuntimeError("sudo refused the password on the EVK")
 
     def run(self, cmd, sudo=False, timeout=120):
         """run a shell command; returns (rc, output). sudo feeds the password on stdin."""
@@ -117,6 +123,7 @@ class Evk:
         if sudo:
             stdin.write(self.password + "\n")
             stdin.flush()
+        stdin.channel.shutdown_write()   # EOF: a wrong/empty sudo password fails instead of waiting forever
         out = stdout.read().decode(errors="replace") + stderr.read().decode(errors="replace")
         return stdout.channel.recv_exit_status(), out.strip()
 
