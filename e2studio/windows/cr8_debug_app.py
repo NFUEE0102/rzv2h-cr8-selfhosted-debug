@@ -335,7 +335,7 @@ def prepare_launch(cfg):
     dst = os.path.join(cfg["project_dir"], "CR8 core0 via OpenOCD dmem.launch")
     if not os.path.isdir(cfg["project_dir"]):
         return
-    gdb = find_gdb(cfg["e2studio"]).replace("\\", "\\\\")
+    gdb = find_gdb(cfg["e2studio"])   # plain backslashes: this is XML, not sed
     with open(src, encoding="utf-8") as f:
         text = f.read().replace('DEBUG_NAME" value="gdb-multiarch"', f'DEBUG_NAME" value="{gdb}"')
     with open(dst, "w", encoding="utf-8") as f:
