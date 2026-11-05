@@ -152,6 +152,12 @@ re-anchor the remaining pack edits (`port.c` tick-probe hook, libmetal `dmb sy` 
 OpenAMP stage probes) and update `check_regen.py`. Tracked here rather than done early on
 4.2.0, which would need the same work twice.
 
+## Authors
+
+- [dragon1126](https://github.com/dragon1126) -- design, hardware bring-up, verification on the EVK, maintainer
+- NFUEE0102 lab account -- repository host; commits before v1.0.0 were pushed from it
+- Built with Claude Code (Anthropic) as pair programmer
+
 ## License
 
 Our code and documentation: BSD-3-Clause ([LICENSE](LICENSE)). The repository also contains
