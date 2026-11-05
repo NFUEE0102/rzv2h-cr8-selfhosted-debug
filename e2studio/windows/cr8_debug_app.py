@@ -580,8 +580,14 @@ class App(tk.Tk):
             return
 
         def work():
+            # prefer the ELF built here (its sources resolve in this e2 studio) over the repo's prebuilt one
+            elf = DEMO_ELF
+            if os.path.isfile(os.path.join(self.cfg["project_dir"], "Debug", PROJ + ".elf")):
+                elf = patch_elf(self.cfg, self.log)
             self._connect()
-            self.evk.install(DEMO_ELF, find_tarball())
+            self.evk.install(elf, find_tarball())
+            if elf != DEMO_ELF:
+                self.log("installed the ELF built here; it is loaded on the next core0 (re)start -> press Redeploy to run it now")
         self._work(work)
 
     def _on_close(self):
