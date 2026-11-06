@@ -27,8 +27,11 @@ Electronics Corp. ... No other uses are authorized"), with co-copyright eForce C
 - `firmware/base/src/OpenAMP_RPMsg_cfg.h`, `rpmsg_demo.c`, `rsc_table.c`, `rsc_table.h`, `sys_init.c`
 - `firmware/cm33_demo/src/platform_info.h`
 
-They come from the RDK template projects that Renesas itself publishes on GitHub, in the
-`renesas-rdk` organisation, as public repositories without a separate LICENSE file:
+They originate from the Renesas RZ/V2H Multi-OS Package (the RDK template projects are
+built from it). Renesas support confirmed in November 2026 that redistributing them in a
+public repository is fine as long as the original source is credited, which this file does.
+Renesas itself publishes the same template projects on GitHub, in the `renesas-rdk`
+organisation, as public repositories without a separate LICENSE file:
 
 - https://github.com/renesas-rdk/rzv2h_rdk_cr8_core0_rpmsg_linux_rtos_demo (`src/OpenAMP_RPMsg_cfg.h`, `rpmsg_demo.c`, `rsc_table.c`, `rsc_table.h`, `sys_init.c`)
 - https://github.com/renesas-rdk/rzv2h_rdk_cm33_rpmsg_linux_rtos_demo (`src/platform_info.h`)

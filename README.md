@@ -155,6 +155,12 @@ re-anchor the remaining pack edits (`port.c` tick-probe hook, libmetal `dmb sy` 
 OpenAMP stage probes) and update `check_regen.py`. Tracked here rather than done early on
 4.2.0, which would need the same work twice.
 
+Renesas support added (November 2026) that the Multi-OS Package route needs no image change:
+only the FSP source version referenced by the Multi-OS FSP tree moves from 4.2.0 to 4.3.0, with
+the `src/` folder untouched. That is the path for projects built from the rz-fsp sources; this
+repository builds from the e² studio packs, so it waits for the pack release. As of 2026-11-06
+the rz-fsp GitHub releases still end at v4.2.0 (2026-07-28).
+
 ## Authors
 
 - [dragon1126](https://github.com/dragon1126) -- design, hardware bring-up, verification on the EVK, maintainer
