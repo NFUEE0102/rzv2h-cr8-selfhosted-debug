@@ -146,20 +146,25 @@ as [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3). On 2026-11-02
 confirmed both findings are fixed in **RZ FSP v4.3.0** (`lr_svc` preserved in `IRQ_Handler`,
 AAPCS 8-byte stack alignment in the dispatch path).
 
-This repository stays on e² studio 2025-01 + FSP 3.1.0 until the official 4.3.0 release is
-downloadable. As of 2026-11-03 GitHub carries only v4.2.0 installers; 4.3.0 exists as a commit
-on `master` without a release, packs or the e² studio 2026-10 it requires. When it ships, the
-migration is: install e² studio 2026-10 + FSP 4.3.0 packs, let the configurator migrate
-`firmware/base/configuration.xml`, drop the `portASM.asm` replacement from `patch_packs.py`,
-re-anchor the remaining pack edits (`port.c` tick-probe hook, libmetal `dmb sy` / mutex,
-OpenAMP stage probes) and update `check_regen.py`. Tracked here rather than done early on
-4.2.0, which would need the same work twice.
+**RZ FSP v4.3.0 was released on 2026-11-12**
+([release page](https://github.com/renesas/rz-fsp/releases/tag/v4.3.0)); its notes list the
+Cortex-R8 port fix ("LR register being overwritten or corrupted during nested interrupts" and
+the 8-byte stack alignment). It requires e² studio 2026-10 (`setup_rzfsp_v4_3_0_e2s_v2026-10.exe`,
+1.9 GB) or the standalone packs (`RZ_FSP_Packs_v4.3.0.exe`).
+
+This repository still builds with e² studio 2025-01 + FSP 3.1.0. The migration is: install
+e² studio 2026-10 + FSP 4.3.0, let the configurator migrate `firmware/base/configuration.xml`,
+drop the `portASM.asm` replacement from `patch_packs.py`, re-anchor the remaining pack edits
+(`port.c` tick-probe hook, `bsp_irq.c` bounds check, libmetal `dmb sy` / mutex, OpenAMP stage
+probes) and update `check_regen.py`. One thing to keep: the 4.3.0 handler still performs a
+context switch from a *nested* interrupt exit (no interrupt-nesting count, unlike upstream
+FreeRTOS's Cortex-R ports), which our `portASM.asm` defers to the outermost level; see
+[docs/build-firmware.md](docs/build-firmware.md).
 
 Renesas support added (November 2026) that the Multi-OS Package route needs no image change:
 only the FSP source version referenced by the Multi-OS FSP tree moves from 4.2.0 to 4.3.0, with
 the `src/` folder untouched. That is the path for projects built from the rz-fsp sources; this
-repository builds from the e² studio packs, so it waits for the pack release. As of 2026-11-06
-the rz-fsp GitHub releases still end at v4.2.0 (2026-07-28).
+repository builds from the e² studio packs.
 
 ## Authors
 

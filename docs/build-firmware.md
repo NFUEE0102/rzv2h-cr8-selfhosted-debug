@@ -76,7 +76,15 @@ The FreeRTOS files are MIT (Amazon), `bsp_irq.c` is BSD-3-Clause (Renesas); see
 [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3) and are fixed in RZ FSP v4.3.0
 (Renesas' version keeps `PUSH {r0-r4, r12}` and brackets the three `BLX` calls with
 `PUSH/POP {r0-r4, lr}`, plus `BIC sp, sp, #7` on the SVC path — equivalent to this patch).
-The replacement file stays in this repository until the project moves to 4.3.0; see the
+v4.3.0 was released on 2026-11-12 (requires e² studio 2026-10). Not in 4.3.0: our
+`portASM.asm` also keeps an interrupt-nesting count (`ulPortInterruptNesting`) and only takes
+the `switch_before_exit` path at nesting level 0, as upstream FreeRTOS's Cortex-R ports do.
+The 4.3.0 handler has no such count: an inner interrupt that sets `ulPortYieldRequired` (for
+example a queue send from an ISR that wakes a higher-priority task) switches context while the
+outer ISR is still in progress, so `portSAVE_CONTEXT` records the outer handler's SVC-mode
+state as the task's and the outer interrupt stays active in the GIC until that task is
+scheduled again. Keep the nesting guard when moving to 4.3.0; it has not been reported upstream
+yet. The replacement file stays in this repository until the project moves to 4.3.0; see the
 README roadmap. The `port.c` hook and the libmetal / OpenAMP edits are ours and will be
 re-anchored on the new pack, not dropped.
 
