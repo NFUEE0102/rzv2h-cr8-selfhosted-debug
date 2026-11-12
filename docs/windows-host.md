@@ -1,7 +1,7 @@
 # Windows host: the clickable app
 
 `e2studio/windows/cr8_debug_app.py` is a one-window front end for a Windows PC that has
-e² studio (2025-01, FSP 3.1.0) installed. It needs no SSH key, no `ssh.exe`, no terminal:
+e² studio (2026-10, RZ FSP 4.3.0) installed. It needs no SSH key, no `ssh.exe`, no terminal:
 
 1. you type the EVK address, user and password (tick "remember" to keep them in
    `%APPDATA%\cr8-debug\config.json`, readable only by your Windows account);

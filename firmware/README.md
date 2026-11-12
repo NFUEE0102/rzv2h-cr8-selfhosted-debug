@@ -4,7 +4,7 @@ The CR8 firmware family of this repository (rpmsg echo + PWM control + black box
 echo/UART on core1, and the debugging demo), built from `base/` with asserted variant
 transforms and a headless e² studio. Full description: [docs/build-firmware.md](../docs/build-firmware.md).
 
-## Quickstart (Linux, e² studio 2025-01 + RZ/V FSP 3.1.0 installed, default `~/rzv-tools/e2studio`)
+## Quickstart (Linux, e² studio 2026-10 + RZ FSP 4.3.0 installed, default `~/rzv-tools/e2studio`; Windows: `tools\build.ps1 <variant>`)
 
 ```bash
 python3 tools/patch_packs.py --e2studio ~/rzv-tools/e2studio     # once per e² studio install (idempotent, keeps <pack>.orig)
@@ -24,7 +24,9 @@ post-processes the ELF for remoteproc. Stop OpenOCD on the board before `deploy.
 | `base/` | e² studio project inputs for core0, per-core layout, PWM-demo functionality. Generated content (`rzv/`, `rzv_gen/`, `rzv_cfg/`, `Debug/`) is not tracked. |
 | `cm33_demo/` | Renesas CM33 template project; the CR8 `.cproject` references its `.sbd`, so it is imported alongside. |
 | `variants/` | Anchored, asserted, idempotent transforms applied to a copy of `base/`: `layout_shared.py`, `core0_pwm_plane.py`, `core0_demo.py`, `core1_echo.py`, `core1_uart.py`; `files/demo_servo.c`. |
-| `fsp-patches/rzv/` | FSP 3.1.0 files with our fixes: `portASM.asm` (IRQ_Handler saves `lr_svc` — the nested-interrupt data abort), `port.c` (weak `r8_tick_probe()` hook), `bsp_irq.c` (vector-table bounds check). Injected into the packs by `tools/patch_packs.py`. |
+| `tools/patch_packs.py` | Our FSP 4.3.0 pack edits, as anchored in-place text transforms (no copied FSP files): `portASM.asm` (interrupt-nesting count: no context switch from a nested IRQ exit), `port.c` (weak `r8_tick_probe()` / `r8_irq_guard()` hooks), `bsp_irq.c` (vector-table bounds check), libmetal `atomic.h` (`dmb sy`), open-amp `rpmsg_virtio.c` (boot-stage probes). `--diff` prints what it changes. |
+| `tools/migrate_cfg_430.py` | The RZ/V FSP 3.1.0 → RZ FSP 4.3.0 migration of `configuration.xml` / `.cproject` (applied once to `base/` and `cm33_demo/`; kept for projects still on 3.1.0). |
+| `tools/seed_pack_cache.py` | Fills the per-user pack cache (`~/.eclipse/com.renesas.platform_*/internal/projectgen/rz_fsp/`) the 2026-10 generator reads; a headless-only host never gets it from the GUI. Run by `build.sh` / `build.ps1`. |
 | `extra/` | Not compiled by default: `r8_sensors.c` (GPS/IST8310 task), `r8_uart_demo.c` + `r8_uart_proto.h` (core1 UART demo), `plane_remote/` (A55 web/gamepad remote). |
 | `tools/` | Build/verify/deploy tooling; `tools/board/` = board-side start/deploy/black-box scripts. |
 | `ref/` | md5 of historical reference binaries for `verify_elf.py`. |
@@ -42,7 +44,7 @@ post-processes the ELF for remoteproc. Stop OpenOCD on the board before `deploy.
 
 ## Rules that are easy to forget
 
-* **Patch the packs, not the project's `rzv/`** — the generator overwrites `rzv/` from the
+* **Patch the packs, not the project's `rz/`** — the generator overwrites `rz/` from the
   packs. `check_regen.py` fails the build if a pack patch did not land.
 * **Verify regeneration** after touching `configuration.xml`; a module added by hand also
   needs its `<stack>` entry or it is silently skipped (`variants/core1_uart.py` shows the

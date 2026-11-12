@@ -22,15 +22,17 @@ planted bug to walk through. Both CR8 cores can be debugged at the same time.
 
 **Current release: v1.0.1** (Ubuntu and Windows hosts, both cores, Windows UI in zh-TW/en/ja) -- see the
 [Releases](https://github.com/NFUEE0102/rzv2h-cr8-selfhosted-debug/releases) page for the
-prebuilt OpenOCD and demo firmware.
+prebuilt OpenOCD and demo firmware. `main` has since moved the firmware build to e² studio
+2026-10 + RZ FSP 4.3.0 (see [FSP 4.3.0](#fsp-430-done-2026-11-12)); the v1.0.1 assets were built
+with RZ/V FSP 3.1.0 and still run.
 
 ## Prerequisites
 
 | Side | Requirement |
 |---|---|
 | RZ/V2H EVK | Ubuntu with the 6.10 kernel that has CR8 remoteproc support (`/sys/class/remoteproc/remoteproc1` = `cr8-core0`). **DSW1-7 ON** (MD_BOOT3 = 1), then **power-cycle** — the pin is latched at power-on reset. A user with sudo (the stock `ubuntu` account works). |
-| Linux host | e² studio 2025-01 with the RZ/V FSP 3.1.0 pack and its bundled GNU Arm 13.3 toolchain (for building the firmware; debugging a prebuilt ELF needs only e² studio), `python3`, `ssh`, `gdb-multiarch` (installed by the host script). Tested on Ubuntu 24.04 with an XFCE desktop. |
-| Windows host | e² studio 2025-01 + FSP 3.1.0 under `C:\Renesas`, Python 3 from python.org (`py` launcher), `paramiko` (installed by the host script). No SSH key, no `ssh.exe` needed. See [docs/windows-host.md](docs/windows-host.md). |
+| Linux host | e² studio 2026-10 with the RZ FSP 4.3.0 pack and its bundled GNU Arm 13.3 toolchain (for building the firmware; debugging a prebuilt ELF needs only e² studio), `python3`, `ssh`, `gdb-multiarch` (installed by the host script). Tested on Ubuntu 24.04 with an XFCE desktop (with e² studio 2025-01 + RZ/V FSP 3.1.0; the 4.3.0 build has so far been exercised on Windows). |
+| Windows host | e² studio 2026-10 + RZ FSP 4.3.0 under `C:\Renesas` (the installer `setup_rzfsp_v4_3_0_e2s_v2026-10.exe` from the [rz-fsp v4.3.0 release](https://github.com/renesas/rz-fsp/releases/tag/v4.3.0)), Python 3 from python.org (`py` launcher), `paramiko` (installed by the host script). No SSH key, no `ssh.exe` needed. See [docs/windows-host.md](docs/windows-host.md). |
 | Network | Host reaches the EVK over SSH with a password. No keys required. |
 
 ## Quick start (three steps)
@@ -131,6 +133,22 @@ target, gdb port 3334; halting one core leaves the other running). The CM33 cann
 this way: its debug registers live on its private bus behind the DAP's AHB-AP and are not on
 the system bus (the CST ROM table lists CA55 and CR8 only).
 
+**RZ FSP 4.3.0 build (2026-11-13, Windows 10, e² studio 2026-10, `firmware/tools/build.ps1`):**
+all six variants build headless; on the EVK `core0-demo` + `core1-uart` boot as a pair, tick at
+1 kHz (ISR jitter 1.0 µs peak to peak) and echo at 10,088 round trips/s, 98.6 µs average (the
+3.1.0 build: 10,145 / 98.0 µs, same board, same client). Repeated host connections, the PWM and
+jitter commands and the core1 channel work. The debug path was re-run through the app's own
+classes (password login, OpenOCD start, in-process tunnel) with the 2026-10
+`arm-none-eabi-gdb.exe`: hardware breakpoint in `demo_servo_step()`, Step Over, the conditional
+breakpoint `deg >= 70` (stops with `pulse_us = 1049`, the planted overflow), a breakpoint on
+core1 while core0 keeps ticking, graceful stop, redeploy of the pair. Nested-interrupt soak (MHU
+doorbell at IPL 12 nesting into the tick): 61 minutes of alternating echo floods, 241 fresh
+connections and 9.76 million echoes per core, 15,493 + 9,304 nested interrupt entries, no fault,
+no Data Abort, no lost wake-up. Not re-run with 4.3.0: the app's GUI window and the e² studio
+GUI session themselves, the Linux host (`build.sh` + e² studio 2026-10 for Linux), and two
+simultaneous echo floods (one per core), which stall the A55 clients after about 23,000
+messages with the 3.1.0 firmware as well.
+
 Windows host (Windows 10, e² studio 2025-01, Python 3.13): verified with the clickable app,
 `e2studio/windows/cr8_debug_app.py`: password login, EVK-side install from the app, firmware
 + OpenOCD start, `arm-none-eabi-gdb.exe` attach / conditional hardware breakpoint / step /
@@ -139,27 +157,23 @@ variables through the app's own tunnel, redeploy of a Windows-built ELF
 work with gdb (connections dropped), which is why the app tunnels in-process. Not yet tried:
 building the project from the e² studio GUI instead of the headless script.
 
-## Roadmap: FSP 4.3.0
+## FSP 4.3.0 (done 2026-11-12)
 
-The nested-interrupt bug that `fsp-patches/rzv/portASM.asm` works around was reported upstream
-as [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3). On 2026-11-02 Renesas
-confirmed both findings are fixed in **RZ FSP v4.3.0** (`lr_svc` preserved in `IRQ_Handler`,
-AAPCS 8-byte stack alignment in the dispatch path).
+The nested-interrupt bug this repository used to work around with a replacement `portASM.asm`
+was reported upstream as [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3) and is
+fixed in **RZ FSP v4.3.0** (released 2026-11-12, [release
+page](https://github.com/renesas/rz-fsp/releases/tag/v4.3.0): `lr_svc` preserved across the
+nested call, AAPCS 8-byte stack alignment in the dispatch path). The firmware now builds with
+**e² studio 2026-10 + RZ FSP 4.3.0**; the 3.1.0 line is no longer supported by the build
+scripts (`tools/migrate_cfg_430.py` is the one-shot migration that was applied to
+`firmware/base/` and `firmware/cm33_demo/`).
 
-**RZ FSP v4.3.0 was released on 2026-11-12**
-([release page](https://github.com/renesas/rz-fsp/releases/tag/v4.3.0)); its notes list the
-Cortex-R8 port fix ("LR register being overwritten or corrupted during nested interrupts" and
-the 8-byte stack alignment). It requires e² studio 2026-10 (`setup_rzfsp_v4_3_0_e2s_v2026-10.exe`,
-1.9 GB) or the standalone packs (`RZ_FSP_Packs_v4.3.0.exe`).
-
-This repository still builds with e² studio 2025-01 + FSP 3.1.0. The migration is: install
-e² studio 2026-10 + FSP 4.3.0, let the configurator migrate `firmware/base/configuration.xml`,
-drop the `portASM.asm` replacement from `patch_packs.py`, re-anchor the remaining pack edits
-(`port.c` tick-probe hook, `bsp_irq.c` bounds check, libmetal `dmb sy` / mutex, OpenAMP stage
-probes) and update `check_regen.py`. One thing to keep: the 4.3.0 handler still performs a
-context switch from a *nested* interrupt exit (no interrupt-nesting count, unlike upstream
-FreeRTOS's Cortex-R ports), which our `portASM.asm` defers to the outermost level; see
-[docs/build-firmware.md](docs/build-firmware.md).
+What is still patched into the 4.3.0 packs, and why, is in
+[docs/build-firmware.md](docs/build-firmware.md). The one piece that matters for nested
+interrupts: the 4.3.0 handler has no interrupt-nesting count, so an inner interrupt that
+requests a yield switches context while the outer ISR is still in progress. `patch_packs.py`
+restores the upstream FreeRTOS ARM_CRx bookkeeping (count on entry, `switch_before_exit` only at
+level 0) as a minimal edit of the 4.3.0 file; this has not been reported upstream yet.
 
 Renesas support added (November 2026) that the Multi-OS Package route needs no image change:
 only the FSP source version referenced by the Multi-OS FSP tree moves from 4.2.0 to 4.3.0, with
@@ -189,7 +203,7 @@ J-Link。
 1. **EVK 端**：DSW1-7 撥 ON 後斷電重開；clone 本專案，執行 `bash debug/install-on-evk.sh`
    （有從 Releases 下載 `openocd-rzv2h-aarch64.tar.gz` 放進 `debug/` 的話幾秒就好，沒有的話會
    自己編譯約 10 分鐘）。
-2. **開發機（Linux + e² studio 2025-01 + FSP 3.1.0）**：clone 本專案，執行
+2. **開發機（Linux + e² studio 2026-10 + RZ FSP 4.3.0）**：clone 本專案，執行
    `bash e2studio/install-host.sh`，依提示輸入 EVK 的 IP、帳號、密碼；它會裝 `gdb-multiarch`、
    建置示範韌體、匯入 e² studio 工作區、放三顆桌面按鈕。
    **Windows 開發機**：解壓後，從 Releases 頁下載 `CR8DebugApp.exe` 放進資料夾直接點（或點
