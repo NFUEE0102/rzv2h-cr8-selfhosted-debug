@@ -111,17 +111,14 @@ static int rzv2_enable_interrupt (struct remoteproc * rproc, struct metal_device
 
     if (!ipi.registered)
     {
-        /* Register interrupt handler and enable interrupt for RZ/V2 CA5X or CR7 */
+        /* RZ FSP 4.3.0 (upstream libmetal 2023): the MHU driver's metal_irq_isr_wrapper() hands the
+         * interrupt to R_MHU_B_NS_IsrSub() through metal_irq_handle() itself, and R_MHU_B_NS_Open()
+         * already did R_BSP_IrqCfgEnable(). libmetal's metal_irq_register()/metal_irq_enable() now
+         * route through an IRQ controller this port does not register, so nothing is left to do
+         * here (the 3.x code registered R_MHU_B_NS_IsrSub with libmetal's per-IRQ handler list). */
         irq_vect = (uintptr_t) ipi_dev->irq_info;
-        ret      = metal_irq_register((int) irq_vect, R_MHU_B_NS_IsrSub, ipi_dev, rproc);
-        if (ret)
-        {
-            LPRINTF("metal_irq_register() failed with %d", ret);
-
-            return ret;
-        }
-
-        metal_irq_enable(irq_vect);
+        (void) rproc;
+        LPRINTF("MHU irq %u handled by the FSP driver\n", (unsigned int) irq_vect);
     }
 
     return ret;
@@ -136,21 +133,16 @@ static void rzv2_disable_interrupt (struct remoteproc * rproc)
     dev = ipi.dev;
     if (dev)
     {
-        metal_irq_disable((uintptr_t) dev->irq_info);
-        ret = metal_irq_unregister((int) dev->irq_info, NULL, NULL, NULL);
-        if (ret)
-        {
-            LPRINTF("metal_irq_unregister() failed with %d", ret);
-
-            return;
-        }
+        /* The MHU driver owns the interrupt (see rzv2_enable_interrupt); R_MHU_B_NS_Close() disables it. */
+        ret = 0;
+        (void) ret;
 
         metal_device_close(dev);
         ipi.registered = 0;
     }
 }
 
-static struct remoteproc * rzv2_proc_init (struct remoteproc * rproc, struct remoteproc_ops * ops, void * arg)
+static struct remoteproc * rzv2_proc_init (struct remoteproc * rproc, const struct remoteproc_ops * ops, void * arg)
 {
     struct remoteproc_priv * prproc = arg;
     struct metal_device    * dev;

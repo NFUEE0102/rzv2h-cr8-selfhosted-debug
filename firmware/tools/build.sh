@@ -49,6 +49,9 @@ esac
 [ "$NOBUILD" = 1 ] && { echo "work tree ready: $B"; exit 0; }
 
 echo "== [$V] packs"
+# the generator reads the per-user pack cache (~/.eclipse/com.renesas.platform_*), which only a GUI
+# start fills: seed it from the install first, then make sure every copy carries our patches
+python3 "$HERE/seed_pack_cache.py" --e2studio "$E2STUDIO" || { echo "pack cache seeding failed"; exit 1; }
 python3 "$HERE/patch_packs.py" --e2studio "$E2STUDIO" --check | grep -v "^  ok" || true
 python3 "$HERE/patch_packs.py" --e2studio "$E2STUDIO" > /dev/null || { echo "pack patching failed"; exit 1; }
 

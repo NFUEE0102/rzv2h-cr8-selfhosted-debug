@@ -29,8 +29,8 @@ P = proj_arg(sys.argv)
 patch(f"{P}/configuration.xml", [
     ('<option key="Core" value="CR8_0"/>', '<option key="Core" value="CR8_1"/>'),
     ('"enum.mcu.mhu_b.channels.3"', '"enum.mcu.mhu_b.channels.4"'),
-    ('<property id="module.driver.timer.channel" value="enum.mcu.gtm.channels.4"/>',
-     '<property id="module.driver.timer.channel" value="enum.mcu.gtm.channels.5"/>'),
+    ('<property id="module.driver.rzv.timer.channel" value="enum.mcu.gtm.channels.4"/>',
+     '<property id="module.driver.rzv.timer.channel" value="enum.mcu.gtm.channels.5"/>'),
 ], done_marker='<option key="Core" value="CR8_1"/>')
 
 # ---- B. custom_rzv2h_cr8_1.ld ----

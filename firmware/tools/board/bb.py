@@ -237,7 +237,9 @@ if ver >= 8 and ft:
 SNS = {0:"(未設)", 1:"掏 UART", 2:"羅盤取樣", 3:"pump",
        4:"vTaskDelay", 5:"i2c_wait 中"}
 
-if ver >= 11:   # 不再以 fault 為條件——凍結那種故障沒有 fault
+if ver >= 22:   # FSP 4.3.0 handler: portASM only keeps the nesting count, no epi/sw probes
+    print("IRQ 收尾快照:韌體 v22 起不再由 portASM 寫入(FSP 4.3.0 handler,只保留巢狀計數)")
+elif ver >= 11:   # 不再以 fault 為條件——凍結那種故障沒有 fault
     b, r2, af = v["epi_sp_before"], v["epi_r2"], v["epi_sp_after"]
     print("IRQ 收尾三點(最後一次中斷,由 portASM 直接寫 SRAM):")
     print("  POP {r2} 前 sp = 0x%08X" % b)

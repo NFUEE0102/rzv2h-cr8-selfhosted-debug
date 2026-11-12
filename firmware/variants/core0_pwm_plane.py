@@ -41,16 +41,16 @@ if "pa4.gpt6.gtioc6a" in cx:
 else:
     # ---- 1. drop the GPT modules and stacks we do not use (5, 8, 9) ----
     for ch in ("5", "8", "9"):
-        pat = re.compile(r'    <module id="module\.driver\.timer_on_gpt\.90%s0000">.*?\n    </module>\n' % ch, re.S)
+        pat = re.compile(r'    <module id="module\.driver\.rzv\.timer_on_gpt\.90%s0000">.*?\n    </module>\n' % ch, re.S)
         cx, n = pat.subn("", cx, count=1)
         assert n == 1, f"gpt{ch} module block not found"
-        st = f'      <stack module="module.driver.timer_on_gpt.90{ch}0000"/>\n'
+        st = f'      <stack module="module.driver.rzv.timer_on_gpt.90{ch}0000"/>\n'
         assert cx.count(st) == 1, f"gpt{ch} stack not found"
         cx = cx.replace(st, "", 1)
 
     # ---- 2. GPT4: A (P74) + B (P75); GPT6: A only (PA4); GPT7: A only (PA6); GPT0: no pin output ----
     def module_block(ch):
-        mm = re.search(r'    <module id="module\.driver\.timer_on_gpt\.90%s0000">.*?\n    </module>\n' % ch, cx, re.S)
+        mm = re.search(r'    <module id="module\.driver\.rzv\.timer_on_gpt\.90%s0000">.*?\n    </module>\n' % ch, cx, re.S)
         assert mm, f"gpt{ch} module block not found"
         return mm
 
@@ -59,7 +59,7 @@ else:
         mm = module_block(ch)
         blk = mm.group(0)
         for key, val in (("gtioca", a), ("gtiocb", b)):
-            pat = re.compile(r'(module\.driver\.timer\.%s_output_enabled" value="module\.driver\.timer\.%s_output_enabled\.)(true|false)' % (key, key))
+            pat = re.compile(r'(module\.driver\.rzv\.timer\.%s_output_enabled" value="module\.driver\.rzv\.timer\.%s_output_enabled\.)(true|false)' % (key, key))
             blk, n = pat.subn(lambda x: x.group(1) + ("true" if val else "false"), blk, count=1)
             assert n == 1, f"gpt{ch} {key} output flag not found"
         cx = cx[:mm.start()] + blk + cx[mm.end():]

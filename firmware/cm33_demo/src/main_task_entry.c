@@ -43,7 +43,7 @@ void main_task_entry(void *pvParameters)
         do
         {
             /* RTOS is Master, but this setting must remote in this release. */
-            rpdev = platform_create_rpmsg_vdev(platform, 0x0U, VIRTIO_DEV_SLAVE, NULL, NULL);
+            rpdev = platform_create_rpmsg_vdev(platform, 0x0U, VIRTIO_DEV_DEVICE, NULL, NULL);
             if (!rpdev)
             {
                 LPERROR("Fail, platform_create_rpmsg_vdev.\n");

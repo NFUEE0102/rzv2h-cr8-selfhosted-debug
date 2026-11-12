@@ -183,6 +183,20 @@ static struct remoteproc * platform_create_proc (int proc_index, int rsc_index)
 #else                                  /* FreeRTOS */
     rsc_table          = get_resource_table(rsc_index, &rsc_size);
     rproc_inst->rsc_io = rproc_priv->vr_info->rsc.io;
+
+    /* RZ FSP 4.3.0 ships an open-amp whose device side uses dfeatures & gfeatures (the features the
+     * host acknowledged) instead of dfeatures alone. The user-space hosts on the A55 (the Renesas
+     * rpmsg samples and everything built on the same older open-amp) never write gfeatures, so the
+     * AND came out 0, VIRTIO_RPMSG_F_NS was "not negotiated" and the name-service announcement was
+     * silently dropped: the host then waits for the bind forever. Seed gfeatures with what we offer;
+     * a host that does negotiate overwrites it before it sets DRIVER_OK. */
+    {
+        struct remote_resource_table * p_tbl = (struct remote_resource_table *) rsc_table;
+        if (0U == p_tbl->rpmsg_vdev.gfeatures)
+        {
+            p_tbl->rpmsg_vdev.gfeatures = p_tbl->rpmsg_vdev.dfeatures;
+        }
+    }
 #endif
 
     /* Parse resource table to remoteproc */
@@ -367,8 +381,15 @@ void platform_release_rpmsg_vdev (void * platform, struct rpmsg_device * rpdev)
 #endif
 
     rpmsg_vdev = metal_container_of(rpdev, struct rpmsg_virtio_device, rdev);
+
+    /* Take the virtio device pointer first: the open-amp in RZ FSP 4.3.0 clears rvdev->vdev inside
+     * rpmsg_deinit_vdev() (and frees the virtqueues there). Passing the cleared pointer on made
+     * remoteproc_remove_virtio() a no-op, the stale device stayed on rproc->vdevs, the next
+     * remoteproc_create_virtio() handed it back, and creating its virtqueues again freed the old
+     * ones a second time (heap_4 assert in vPortFree on the second host connection). */
+    struct virtio_device * p_vdev = rpmsg_vdev->vdev;
     rpmsg_deinit_vdev(rpmsg_vdev);
-    remoteproc_remove_virtio(rproc, rpmsg_vdev->vdev);
+    remoteproc_remove_virtio(rproc, p_vdev);
     metal_free_memory(rpmsg_vdev);
 }
 

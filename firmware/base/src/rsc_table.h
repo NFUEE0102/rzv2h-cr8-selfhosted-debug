@@ -50,6 +50,24 @@
 /* VirtIO rpmsg device id */
 #define VIRTIO_ID_RPMSG_         (7U)
 
+/* RSC_RPROC_MEM is a Renesas addition to the open-amp that shipped with RZ/V FSP 3.x (type 4,
+ * 'remote processor memory the host may use as shared memory'). The upstream open-amp in RZ FSP
+ * 4.3.0 does not know it: its resource-table parser skips types outside RSC_LAST and the vendor
+ * range, so the entry stays in the table (same bytes as before, the A55 side still reads it) and
+ * the type and struct are defined here. */
+#ifndef RSC_RPROC_MEM
+#define RSC_RPROC_MEM            (4U)
+METAL_PACKED_BEGIN
+struct fw_rsc_rproc_mem
+{
+    uint32_t type;
+    uint32_t da;
+    uint32_t pa;
+    uint32_t len;
+    uint32_t reserved;
+} METAL_PACKED_END;
+#endif
+
 #define NUM_VRINGS               (2U)
 #define NUM_TABLE_ENTRIES        (2U)
 #define NO_RESOURCE_ENTRIES      (2U)

@@ -36,7 +36,7 @@ cleanup() {
 }
 trap cleanup EXIT
 xvfb-run -a -s "-screen 0 1280x1024x24" \
-  "$E2STUDIO/eclipse/e2studio" -nosplash -consoleLog -data "$WS" \
+  "$E2STUDIO/eclipse/e2studio" --launcher.suppressErrors -nosplash -consoleLog -data "$WS" \
   -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
   "${IMPORTS[@]}" "${BUILDS[@]}" -no-indexer >> "$LOG" 2>&1 &
 BPID=$!

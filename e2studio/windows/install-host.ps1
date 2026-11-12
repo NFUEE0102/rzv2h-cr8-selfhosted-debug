@@ -25,13 +25,13 @@ if (Test-Path $script:ConfigPath) {
 } else {
     Say "No config yet. A few questions:"
     $e2sDefault = Get-ChildItem "C:\Renesas\rzv", "C:\Renesas" -Directory -ErrorAction SilentlyContinue |
-        Where-Object { Test-Path (Join-Path $_.FullName "eclipse\e2studio.exe") } | Select-Object -First 1 -ExpandProperty FullName
+        Where-Object { Test-Path (Join-Path $_.FullName "eclipse\e2studio.exe") } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty FullName
     $cfg = [pscustomobject]@{
         EvkHost    = Ask "EVK IP address" "192.168.1.177"   # ci:allow-ip
         EvkUser    = Ask "EVK user" "ubuntu"
         Fw         = Ask "firmware file name on the EVK" "cr8_demo.elf"
         ProjectDir = Ask "e2 studio project directory" (Join-Path $Repo "firmware\build\core0-demo")
-        E2Studio   = Ask "e2 studio install dir (contains eclipse\e2studio.exe)" $(if ($e2sDefault) { $e2sDefault } else { "C:\Renesas\rzv\e2studio_v2025-01_fsp_v3.1.0" })
+        E2Studio   = Ask "e2 studio install dir (contains eclipse\e2studio.exe)" $(if ($e2sDefault) { $e2sDefault } else { "C:\Renesas\rzv\e2studio_v2026-10_fsp_v4.3.0" })
         Workspace  = Ask "e2 studio workspace" (Join-Path $env:USERPROFILE "cr8dbg-workspace")
     }
     New-Item -ItemType Directory -Force $ConfigDir | Out-Null

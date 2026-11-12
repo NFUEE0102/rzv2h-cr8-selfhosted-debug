@@ -29,7 +29,8 @@
 #define R8_BB_ADDR     (0x439F0000u)
 #define R8_BB_MAGIC    (0x42423852u)
 #define R8_RING_N      (8u)   /* 最後 N 次中斷的現場 */   /* 'R','8','B','B' little-endian */
-#define R8_BB_VERSION  (21u)
+/* 22 (2026-11): FSP 4.3.0 port; portASM.asm no longer writes the epi_ / sw_ fields (nesting count only) */
+#define R8_BB_VERSION  (22u)
 
 /* fault_type */
 #define R8_FAULT_NONE            (0u)

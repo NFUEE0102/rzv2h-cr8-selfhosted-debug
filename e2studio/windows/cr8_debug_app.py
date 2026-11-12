@@ -209,7 +209,7 @@ def find_e2studio():
                 p = os.path.join(root, d)
                 if os.path.isfile(os.path.join(p, "eclipse", "e2studio.exe")):
                     return p
-    return r"C:\Renesas\rzv\e2studio_v2025-01_fsp_v3.1.0"
+    return r"C:\Renesas\rzv\e2studio_v2026-10_fsp_v4.3.0"
 
 
 def find_gdb(e2s):

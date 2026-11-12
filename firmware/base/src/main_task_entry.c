@@ -48,7 +48,7 @@ void main_task_entry(void *pvParameters)
         {
             /* RTOS is Master, but this setting must remote in this release. */
             R8_BB_STAGE(6);
-            rpdev = platform_create_rpmsg_vdev(platform, 0x0U, VIRTIO_DEV_SLAVE, NULL, NULL);
+            rpdev = platform_create_rpmsg_vdev(platform, 0x0U, VIRTIO_DEV_DEVICE, NULL, NULL);
             R8_BB_STAGE(7);
             if (!rpdev)
             {

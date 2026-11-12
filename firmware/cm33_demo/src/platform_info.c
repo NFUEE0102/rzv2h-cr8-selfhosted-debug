@@ -176,6 +176,17 @@ static struct remoteproc * platform_create_proc (int proc_index, int rsc_index)
 #else                                  /* FreeRTOS */
     rsc_table          = get_resource_table(rsc_index, &rsc_size);
     rproc_inst->rsc_io = rproc_priv->vr_info->rsc.io;
+
+    /* RZ FSP 4.3.0 open-amp: the device side uses dfeatures & gfeatures; user-space hosts built on the
+     * older open-amp never write gfeatures, which silently drops the name-service announcement. Seed
+     * gfeatures with what we offer (see firmware/base/src/platform_info.c). */
+    {
+        struct remote_resource_table * p_tbl = (struct remote_resource_table *) rsc_table;
+        if (0U == p_tbl->rpmsg_vdev.gfeatures)
+        {
+            p_tbl->rpmsg_vdev.gfeatures = p_tbl->rpmsg_vdev.dfeatures;
+        }
+    }
 #endif
 
     /* Parse resource table to remoteproc */
@@ -353,8 +364,12 @@ void platform_release_rpmsg_vdev (void * platform, struct rpmsg_device * rpdev)
 #endif
 
     rpmsg_vdev = metal_container_of(rpdev, struct rpmsg_virtio_device, rdev);
+
+    /* RZ FSP 4.3.0 open-amp: rpmsg_deinit_vdev() clears rvdev->vdev, so take the pointer first
+     * (see firmware/base/src/platform_info.c). */
+    struct virtio_device * p_vdev = rpmsg_vdev->vdev;
     rpmsg_deinit_vdev(rpmsg_vdev);
-    remoteproc_remove_virtio(rproc, rpmsg_vdev->vdev);
+    remoteproc_remove_virtio(rproc, p_vdev);
     metal_free_memory(rpmsg_vdev);
 }
 

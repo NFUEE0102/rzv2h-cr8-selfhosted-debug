@@ -6,6 +6,10 @@ firmware/**/Release/
 firmware/**/rzv/
 firmware/**/rzv_gen/
 firmware/**/rzv_cfg/
+# RZ FSP 4.x generated tree
+firmware/**/rz/
+firmware/**/rz_gen/
+firmware/**/rz_cfg/
 firmware/**/.settings/
 __pycache__/
 *.pyc

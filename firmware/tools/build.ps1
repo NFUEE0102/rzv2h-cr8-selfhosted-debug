@@ -1,6 +1,6 @@
 # Windows port of build.sh: build one firmware variant with the headless e2 studio.
 #   py -3 is used for the Python tools (Python 3 from python.org; the Store stub does not work).
-#   .\build.ps1 core0-demo [-E2Studio "C:\Renesas\rzv\e2studio_v2025-01_fsp_v3.1.0"] [-NoBuild]
+#   .\build.ps1 core0-demo [-E2Studio "C:\Renesas\rzv\e2studio_v2026-10_fsp_v4.3.0"] [-NoBuild]
 # Output: out\<variant>.elf (+ .map, .md5, build log); work tree in build\<variant>\
 param(
     [Parameter(Mandatory = $true)][string]$Variant,
@@ -12,7 +12,7 @@ $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Fw = Split-Path -Parent $Here
 if (-not $E2Studio) {
     $E2Studio = Get-ChildItem "C:\Renesas\rzv", "C:\Renesas" -Directory -ErrorAction SilentlyContinue |
-        Where-Object { Test-Path (Join-Path $_.FullName "eclipse\e2studioc.exe") } | Select-Object -First 1 -ExpandProperty FullName
+        Where-Object { Test-Path (Join-Path $_.FullName "eclipse\e2studioc.exe") } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty FullName
 }
 if (-not $E2Studio -or -not (Test-Path "$E2Studio\eclipse\e2studioc.exe")) { throw "e2 studio not found; pass -E2Studio <dir containing eclipse\e2studioc.exe>" }
 $Py = (Get-Command py -ErrorAction SilentlyContinue)
@@ -43,14 +43,20 @@ switch ($Variant) {
 if ($NoBuild) { Write-Host "work tree ready: $B"; exit 0 }
 
 Write-Host "== [$Variant] packs"
+# the generator reads the per-user pack cache, which only a GUI start fills: seed it from the install
+PyRun "$Here\seed_pack_cache.py" --e2studio $E2Studio
 PyRun "$Here\patch_packs.py" --e2studio $E2Studio
 
 Write-Host "== [$Variant] headless e2 studio build (this takes about a minute)"
 $Ws = Join-Path $env:TEMP ("e2sws_" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 $Log = Join-Path $Out "$Variant.build.log"
-$e2sArgs = @("-nosplash", "-consoleLog", "-data", $Ws, "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild",
+# --launcher.suppressErrors: a generator failure otherwise ends in a modal "Java was started but returned
+# exit code=1" dialog that blocks until someone clicks it; the log carries the error anyway.
+$e2sArgs = @("--launcher.suppressErrors", "-nosplash", "-consoleLog", "-data", $Ws, "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild",
              "-import", $Cm33Dir, "-import", $B, "-build", "$Cm33/Debug", "-build", "$Proj/Debug", "-no-indexer")
-$p = Start-Process -FilePath "$E2Studio\eclipse\e2studioc.exe" -ArgumentList $e2sArgs -NoNewWindow -Wait -PassThru -RedirectStandardOutput $Log -RedirectStandardError "$Log.err"
+$p = Start-Process -FilePath "$E2Studio\eclipse\e2studioc.exe" -ArgumentList $e2sArgs -NoNewWindow -PassThru -RedirectStandardOutput $Log -RedirectStandardError "$Log.err"
+$null = $p.Handle   # keep the handle so ExitCode is available without -Wait
+if (-not $p.WaitForExit(1500000)) { $p.Kill(); Write-Host "   e2studioc killed after 25 min (stuck?)" }
 Get-Content "$Log.err" -ErrorAction SilentlyContinue | Add-Content $Log; Remove-Item "$Log.err" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force $Ws -ErrorAction SilentlyContinue
 $finished = (Select-String -Path $Log -Pattern "Build Finished" | Measure-Object).Count
@@ -72,8 +78,9 @@ if ($Core -eq 1) {
     PyRun "$Here\null_phdr_at.py" $Elf 0x081BFFFC
     # give the core1 project its own Eclipse name so it can sit next to the core0 project in one
     # workspace (the artifact name, Debug\<core0 name>.elf, is unchanged)
-    $proj = Join-Path $B ".project"
-    (Get-Content $proj -Raw) -replace "<name>$Proj</name>", "<name>rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo</name>" | Set-Content $proj -Encoding UTF8
+    # (PowerShell variable names are case-insensitive: this must not be called $proj, it would clobber $Proj)
+    $projFile = Join-Path $B ".project"
+    (Get-Content $projFile -Raw).Replace("<name>$Proj</name>", "<name>rzv2h_rdk_cr8_core1_rpmsg_linux_rtos_demo</name>") | Set-Content $projFile -Encoding UTF8
 }
 Copy-Item $Elf (Join-Path $Out "$Variant.elf") -Force
 Copy-Item (Join-Path $B "Debug\$Proj.map") (Join-Path $Out "$Variant.map") -Force -ErrorAction SilentlyContinue

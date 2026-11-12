@@ -429,15 +429,16 @@ void r8_irq_guard_calibrate (void)
         return;                       /* 位址只校準一次,但上面的範圍每次都更新 */
     }
 
-    /* 2026-08-27 起框架是 PUSH {r0-r4, r12, lr} = 28 bytes(原 24)。 */
-    align = (rest - 28u) & 4u;
+    /* FSP 4.3.0 IRQ_Handler frame: PUSH {r0-r4, r12} = 24 bytes, then the alignment
+     * adjustment, then PUSH {r2, r3} (alignment word = r2, at the lower address). */
+    align = (rest - 24u) & 4u;
 
     R8_BB_SET(svc_rest, rest);
     R8_BB_SET(irq_word_exp, align);
-    R8_BB_SET(irq_word_addr, rest - 28u - align - 4u);
+    R8_BB_SET(irq_word_addr, rest - 24u - align - 8u);
 
     g_r8_word_exp  = align;
-    g_r8_word_addr = rest - 28u - align - 4u;   /* 最後才設,設了就開始檢查 */
+    g_r8_word_addr = rest - 24u - align - 8u;   /* 最後才設,設了就開始檢查 */
 }
 
 void r8_irq_guard (uint32_t icciar)
