@@ -8,7 +8,7 @@ transforms and a headless e² studio. Full description: [docs/build-firmware.md]
 
 ```bash
 python3 tools/patch_packs.py --e2studio ~/rzv-tools/e2studio     # once per e² studio install (idempotent, keeps <pack>.orig)
-bash tools/build.sh core0-demo                                   # -> out/core0-demo.elf (+ .map, .md5, build log), ~25 s
+bash tools/build.sh core0-demo                                   # -> out/core0-demo.elf (+ .map, .md5, build log), about a minute
 bash tools/deploy.sh <evk-ip> out/core0-demo.elf --core 0 --name cr8_demo.elf --pw <password>
 ```
 

@@ -46,7 +46,28 @@ if ($NoBuild) { Write-Host "work tree ready: $B"; exit 0 }
 
 Write-Host "== [$Variant] packs"
 # the generator reads the per-user pack cache, which only a GUI start fills: seed it from the install
-PyRun "$Here\seed_pack_cache.py" --e2studio $E2Studio
+# (exit 3 = this e2 studio has never been started by this user, so the cache directory does not exist
+# yet. Start it once on the work tree alone - a disposable copy: with no packs the generator fails on
+# "Failed to locate component" and strips the include paths from the .cproject it was given, so the
+# tracked cm33_demo must not be part of this start - then begin again with the cache in place.)
+& py -3 "$Here\seed_pack_cache.py" --e2studio $E2Studio
+$SeedRc = $LASTEXITCODE
+if ($SeedRc -eq 3) {
+    if ($env:CR8_SEED_RETRY) { throw "no pack cache even after a first start of $E2Studio" }
+    Write-Host "== [$Variant] first start of this e2 studio for this user: creating its pack cache"
+    $Ws0 = Join-Path $env:TEMP ("e2sws_" + [guid]::NewGuid().ToString("N").Substring(0, 8))
+    $Log0 = Join-Path $Out "$Variant.firststart.log"
+    $a0 = @("--launcher.suppressErrors", "-nosplash", "-consoleLog", "-data", $Ws0, "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild",
+            "-import", $B, "-build", "$Proj/Debug", "-no-indexer")
+    $p0 = Start-Process -FilePath "$E2Studio\eclipse\e2studioc.exe" -ArgumentList $a0 -NoNewWindow -PassThru -RedirectStandardOutput $Log0 -RedirectStandardError "$Log0.err"
+    if (-not $p0.WaitForExit(600000)) { $p0.Kill() }
+    Remove-Item "$Log0.err" -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $Ws0 -ErrorAction SilentlyContinue
+    $env:CR8_SEED_RETRY = "1"
+    try { & $MyInvocation.MyCommand.Path -Variant $Variant -E2Studio $E2Studio } finally { Remove-Item Env:CR8_SEED_RETRY -ErrorAction SilentlyContinue }
+    exit $LASTEXITCODE
+}
+elseif ($SeedRc -ne 0) { throw "python tool failed: seed_pack_cache.py" }
 PyRun "$Here\patch_packs.py" --e2studio $E2Studio
 
 Write-Host "== [$Variant] headless e2 studio build (this takes about a minute)"

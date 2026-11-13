@@ -13,6 +13,10 @@ install into every com.renesas.platform_* cache that lacks the packs (idempotent
 both at rz_fsp/ and at rz_fsp/<family>/ (family = rzv for RZ/V).
 Run patch_packs.py afterwards (build.sh / build.ps1 do both, in that order).
 
+Exit status 3 = no cache of this e2 studio generation exists yet (it has never been started by
+this user). Any start creates the directory, so build.sh / build.ps1 then start it once on the
+disposable work tree, and begin again.
+
 usage: seed_pack_cache.py [--e2studio DIR] [--family rzv] [--force]
 """
 import argparse
@@ -43,8 +47,10 @@ if not ver:
 
 caches = sorted(glob.glob(os.path.expanduser("~/.eclipse/com.renesas.platform_*")))
 caches = [c for c in caches if not c.endswith("_download")]
+NOT_STARTED_YET = 3
 if not caches:
-    sys.exit("no ~/.eclipse/com.renesas.platform_* cache yet: start e2 studio (or the headless build) once first")
+    print("  no ~/.eclipse/com.renesas.platform_* cache yet: this e2 studio has not been started by this user")
+    sys.exit(NOT_STARTED_YET)
 
 
 def seed(root):
@@ -79,6 +85,7 @@ def seed(root):
     print(f"  seeded     {root}  ({len(packs)} packs, {len(os.listdir(md))} module descriptions, {ver}/)")
 
 
+ours = 0
 for c in caches:
     base = os.path.join(c, "internal", "projectgen", "rz_fsp")
     # only caches that belong to an e2 studio of this generation (unified rz_fsp packs); a 2025-01
@@ -87,5 +94,9 @@ for c in caches:
     if legacy:                         # never, not even with --force: that cache belongs to another install
         print(f"  skip (3.x) {base}")
         continue
+    ours += 1
     seed(base)
     seed(os.path.join(base, A.family))
+if not ours:
+    print("  no cache for this e2 studio yet (only 3.x ones): it has not been started by this user")
+    sys.exit(NOT_STARTED_YET)

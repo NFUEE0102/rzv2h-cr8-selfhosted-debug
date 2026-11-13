@@ -57,7 +57,19 @@ esac
 echo "== [$V] packs"
 # the generator reads the per-user pack cache (~/.eclipse/com.renesas.platform_*), which only a GUI
 # start fills: seed it from the install first, then make sure every copy carries our patches
-python3 "$HERE/seed_pack_cache.py" --e2studio "$E2STUDIO" || { echo "pack cache seeding failed"; exit 1; }
+python3 "$HERE/seed_pack_cache.py" --e2studio "$E2STUDIO"; SEED=$?
+# 3 = this e2studio has never been started by this user, so its cache directory does not exist yet.
+# Start it once on the work tree alone (a disposable copy: with no packs the generator fails on
+# "Failed to locate component" and strips the include paths from the .cproject it was given, so the
+# tracked cm33_demo must not be part of this start), then begin again with the cache in place.
+case $SEED in
+  0) ;;
+  3) [ -z "${CR8_SEED_RETRY:-}" ] || { echo "no pack cache even after a first start of $E2STUDIO"; exit 1; }
+     echo "== [$V] first start of this e2studio for this user: creating its pack cache"
+     E2STUDIO=$E2STUDIO bash "$HERE/e2s_headless.sh" -l "$OUT/$V.firststart.log" -p "$B" -b "$PROJ/Debug" > /dev/null 2>&1
+     CR8_SEED_RETRY=1 E2STUDIO=$E2STUDIO CM33_PROJECT=$CM33_PROJECT TC=$TC exec bash "$0" "$V" "$@";;
+  *) echo "pack cache seeding failed"; exit 1;;
+esac
 python3 "$HERE/patch_packs.py" --e2studio "$E2STUDIO" --check | grep -v "^  ok" || true
 python3 "$HERE/patch_packs.py" --e2studio "$E2STUDIO" > /dev/null || { echo "pack patching failed"; exit 1; }
 

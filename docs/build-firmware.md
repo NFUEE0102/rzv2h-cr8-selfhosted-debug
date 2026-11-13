@@ -43,7 +43,11 @@ bash tools/build.sh <variant>        # -> out/<variant>.elf (+ .map, .md5, build
    `<ver>/devices|pinconfig|pinmapping|linkerscripts`, also under `rzv/`), which only a GUI
    start fills; on a headless-only host every component then fails with "Failed to locate
    component … in any software packs". `seed_pack_cache.py` mirrors the install into the cache
-   (idempotent). `patch_packs.py` then makes sure every copy of the packs carries our patches
+   (idempotent). If this e² studio has never been started by this user, the cache directory
+   does not exist yet and `seed_pack_cache.py` exits with status 3; `build.sh` / `build.ps1`
+   then start e² studio once on the disposable work tree to create it and begin again (not on
+   `cm33_demo`: without packs the generator strips the include paths from the `.cproject` it
+   is given). `patch_packs.py` then makes sure every copy of the packs carries our patches
    (idempotent; keeps `<pack>.orig`). **Patch the packs, not the project's `rz/`** — the
    generator overwrites `rz/` from the packs on every build, and `check_regen.py` fails the
    build if a pack patch did not land.
@@ -56,6 +60,19 @@ bash tools/build.sh <variant>        # -> out/<variant>.elf (+ .map, .md5, build
 6. `patch-elf-phdr.py`: zero-filesize DDR `PT_LOAD` segments become `PT_NULL`, otherwise
    remoteproc rejects the ELF with `-22`. Core1 variants additionally get
    `null_phdr_at.py 0x081BFFFC` (the cross-core init word lives in core0's SRAM).
+
+Linux install without a desktop, next to an older e² studio (checked on Ubuntu 24.04; note that
+the silent mode accepts the Renesas licence without showing it, so read `install/fsp_license.txt`
+in the extracted directory first):
+
+```bash
+sh setup_rzfsp_v4_3_0_e2s_v2026-10.xz.run --noexec --target ~/rzfsp430-installer
+cd ~/rzfsp430-installer
+xvfb-run -a ./installer -nosplash -install.silent -install.location=$HOME/rzv-tools/e2studio_v2026-10_fsp_v4.3.0
+E2STUDIO=$HOME/rzv-tools/e2studio_v2026-10_fsp_v4.3.0 bash tools/build.sh core0-demo
+```
+
+The pack cache of an older install (RZ/V FSP 3.x) in the same home directory is left untouched.
 
 Environment: `E2STUDIO` (default `~/rzv-tools/e2studio`; e² studio 2026-10 with RZ FSP 4.3.0),
 `CM33_PROJECT` (default `firmware/cm33_demo`), `TC` (GNU Arm toolchain `bin` dir; default = the
@@ -91,7 +108,7 @@ every edit is idempotent and refuses a file it does not recognise (the 3.1.0 han
 
 | File (in the pack) | Edit |
 |---|---|
-| `rz/fsp/src/rm_freertos_port/cr8/portASM.asm` | Interrupt-nesting count. 4.3.0 fixed the two findings of [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3) (`PUSH/POP {r0-r4, lr}` around the three `BLX`, `BIC sp, sp, #7` before `vTaskSwitchContext`), but `IRQ_Handler` still decides on `switch_before_exit` from `ulPortYieldRequired` alone. An inner (nested) interrupt whose ISR requests a yield therefore switches context while the outer ISR is still in progress: `portSAVE_CONTEXT` records the outer handler's SVC-mode state as the task's and the outer interrupt stays active in the GIC until that task runs again. The edit restores upstream FreeRTOS' ARM_CRx bookkeeping: `ulPortInterruptNesting++` after `PUSH {r0-r4, r12}`, `--` after the alignment word is popped, and `BNE exit_without_switch` when it is not 0 (the yield stays pending for the outermost handler). Nothing else in the 4.3.0 handler is touched. Not yet reported upstream. |
+| `rz/fsp/src/rm_freertos_port/cr8/portASM.asm` | Interrupt-nesting count. 4.3.0 fixed the two findings of [renesas/rz-fsp#3](https://github.com/renesas/rz-fsp/issues/3) (`PUSH/POP {r0-r4, lr}` around the three `BLX`, `BIC sp, sp, #7` before `vTaskSwitchContext`), but `IRQ_Handler` still decides on `switch_before_exit` from `ulPortYieldRequired` alone. An inner (nested) interrupt whose ISR requests a yield therefore switches context while the outer ISR is still in progress: `portSAVE_CONTEXT` records the outer handler's SVC-mode state as the task's and the outer interrupt stays active in the GIC until that task runs again. The edit restores upstream FreeRTOS' ARM_CRx bookkeeping: `ulPortInterruptNesting++` after `PUSH {r0-r4, r12}`, `--` after the alignment word is popped, and `BNE exit_without_switch` when it is not 0 (the yield stays pending for the outermost handler). Nothing else in the 4.3.0 handler is touched. Not yet reported upstream. Measured on the EVK: with the unmodified 4.3.0 handler a nested yield crashes the core within seconds, with the count it does not ([experiment](../firmware/experiments/nested-yield/README.md)). |
 | `rz/fsp/src/rm_freertos_port/cr8/port.c` | Definition of `ulPortInterruptNesting`; weak `r8_tick_probe()` called at the top of `SysTick_Handler` (black box: tick liveness / jitter); weak `r8_irq_guard()` and a nested-yield counter after `bsp_common_interrupt_handler()` returns (observation only). |
 | `rz/fsp/src/bsp/mcu/all/cr/bsp_irq.c` | Bounds check on the vector-table index before dispatch (ICCIAR 876 was once dispatched through a neighbouring object); weak `r8_nest_probe()` / `r8_bad_intid()`. |
 | `rz/linaro/libmetal/include/metal/atomic.h` | `atomic_thread_fence` / `atomic_signal_fence` → `dmb sy`: the CR8 is outside the A55's Inner Shareable domain, `dmb ish` gives no cross-core visibility on the vrings. |
