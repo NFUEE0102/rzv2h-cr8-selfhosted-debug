@@ -56,6 +56,17 @@ Then: double-click **CR8 Debug App**, fill in IP / user / password, press **Conn
 in e² studio: Run, Debug Configurations, GDB Hardware Debugging, **CR8 core0 via OpenOCD
 dmem**, Debug.
 
+## Upgrading from v1.0.x
+
+v1.1.0 needs e² studio 2026-10 with RZ FSP 4.3.0; the older e² studio can stay installed next to
+it. Install the new one, update the repository, and run `firmware\tools\build.ps1 core0-demo`
+(and `core1-uart`) once. The app keeps the e² studio folder and the workspace in
+`%APPDATA%\cr8-debug\config.json`, and saved values win over detected ones. So on its first start
+after the upgrade it checks them: if the saved e² studio has no RZ FSP 4.x packs and a newer
+install is present, it switches to the newer install and to a new workspace
+(`<old workspace>-fsp4`), and writes both changes to its log. The old workspace is not touched.
+Both fields can be edited back; settings chosen after the upgrade are not changed again.
+
 ## Languages
 
 The app's labels, buttons, log lines and error dialogs come in Traditional Chinese, English

@@ -14,7 +14,8 @@ converts it with `angle_to_pulse_us()` and writes it to **GPT4.B = P75 = Pmod CN
 (50 Hz servo pulse, 1000–2000 µs). It mirrors its state to DDR at `0x439FF000`
 (`+0x08` angle, `+0x0C` pulse µs), readable from Linux with `busybox devmem`.
 
-The prebuilt `cr8_demo.elf` in this directory is the **buggy** build, md5 `df6f1965…`.
+The prebuilt `cr8_demo.elf` in this directory is the **buggy** build (RZ FSP 4.3.0,
+`firmware/tools/build.ps1 core0-demo`), md5 `6e33ff83…`.
 
 ## The bug
 

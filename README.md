@@ -20,18 +20,19 @@ The repository is complete: firmware sources and build system, the debug tooling
 board, the e² studio integration for the host (Linux and Windows), and a demo firmware with a
 planted bug to walk through. Both CR8 cores can be debugged at the same time.
 
-**Current release: v1.0.1** (Ubuntu and Windows hosts, both cores, Windows UI in zh-TW/en/ja) -- see the
+**Current release: v1.1.0** (e² studio 2026-10 + RZ FSP 4.3.0; Ubuntu and Windows hosts, both
+cores, Windows UI in zh-TW/en/ja) -- see the
 [Releases](https://github.com/NFUEE0102/rzv2h-cr8-selfhosted-debug/releases) page for the
-prebuilt OpenOCD and demo firmware. `main` has since moved the firmware build to e² studio
-2026-10 + RZ FSP 4.3.0 (see [FSP 4.3.0](#fsp-430-done-2026-11-12)); the v1.0.1 assets were built
-with RZ/V FSP 3.1.0 and still run.
+prebuilt OpenOCD, the demo firmware and `CR8DebugApp.exe`. The firmware build moved to RZ FSP
+4.3.0 in this release (see [FSP 4.3.0](#fsp-430-done-2026-11-12)); v1.0.1 is the last one for
+e² studio 2025-01 + RZ/V FSP 3.1.0, and its firmware images still run.
 
 ## Prerequisites
 
 | Side | Requirement |
 |---|---|
 | RZ/V2H EVK | Ubuntu with the 6.10 kernel that has CR8 remoteproc support (`/sys/class/remoteproc/remoteproc1` = `cr8-core0`). **DSW1-7 ON** (MD_BOOT3 = 1), then **power-cycle** — the pin is latched at power-on reset. A user with sudo (the stock `ubuntu` account works). |
-| Linux host | e² studio 2026-10 with the RZ FSP 4.3.0 pack and its bundled GNU Arm 13.3 toolchain (for building the firmware; debugging a prebuilt ELF needs only e² studio), `python3`, `ssh`, `gdb-multiarch` (installed by the host script). Tested on Ubuntu 24.04 with an XFCE desktop (with e² studio 2025-01 + RZ/V FSP 3.1.0; the 4.3.0 build has so far been exercised on Windows). |
+| Linux host | e² studio 2026-10 with the RZ FSP 4.3.0 pack and its bundled GNU Arm 13.3 toolchain (for building the firmware; debugging a prebuilt ELF needs only e² studio), `python3`, `ssh`, `gdb-multiarch` (installed by the host script). Tested on Ubuntu 24.04 with an XFCE desktop (all six firmware variants build headless there with e² studio 2026-10 + RZ FSP 4.3.0; the e² studio GUI debug session was last exercised with 2025-01). |
 | Windows host | e² studio 2026-10 + RZ FSP 4.3.0 under `C:\Renesas` (the installer `setup_rzfsp_v4_3_0_e2s_v2026-10.exe` from the [rz-fsp v4.3.0 release](https://github.com/renesas/rz-fsp/releases/tag/v4.3.0)), Python 3 from python.org (`py` launcher), `paramiko` (installed by the host script). No SSH key, no `ssh.exe` needed. See [docs/windows-host.md](docs/windows-host.md). |
 | Network | Host reaches the EVK over SSH with a password. No keys required. |
 
@@ -144,10 +145,20 @@ breakpoint `deg >= 70` (stops with `pulse_us = 1049`, the planted overflow), a b
 core1 while core0 keeps ticking, graceful stop, redeploy of the pair. Nested-interrupt soak (MHU
 doorbell at IPL 12 nesting into the tick): 61 minutes of alternating echo floods, 241 fresh
 connections and 9.76 million echoes per core, 15,493 + 9,304 nested interrupt entries, no fault,
-no Data Abort, no lost wake-up. Not re-run with 4.3.0: the app's GUI window and the e² studio
-GUI session themselves, the Linux host (`build.sh` + e² studio 2026-10 for Linux), and two
-simultaneous echo floods (one per core), which stall the A55 clients after about 23,000
-messages with the 3.1.0 firmware as well.
+no Data Abort, no lost wake-up. The e² studio 2026-10 window itself was then driven by hand
+(2026-11-13): Debug Configurations, **CR8 core0 via OpenOCD dmem**, Debug; the session attaches
+with the call stack and source of the idle task, a breakpoint set in the editor on
+`angle_to_pulse_us()` hits, Step Over updates the Variables view, a second session on core1 runs
+next to it, and closing e² studio resumes both cores and stops OpenOCD. On Linux, all six
+variants build with `build.sh` and e² studio 2026-10. Not re-run with 4.3.0: typing the password
+into the app window and pressing its buttons with the mouse (the window was built in-process
+instead: fields, the three languages, and Connect without a password, which reports that `sudo`
+needs one), the e² studio GUI session on a Linux host, and two simultaneous echo floods (one
+per core), which stall the A55 clients after about 23,000 messages with the 3.1.0 firmware as
+well. Upgrading from v1.0.x: the app keeps the e² studio folder and the workspace in
+`%APPDATA%\cr8-debug\config.json`. When those settings name an install without the RZ FSP 4.x
+packs and a newer install is present, the app switches to the newer one and to a new workspace
+(`<old workspace>-fsp4`), says so in its log, and leaves the old workspace alone.
 
 Windows host (Windows 10, e² studio 2025-01, Python 3.13): verified with the clickable app,
 `e2studio/windows/cr8_debug_app.py`: password login, EVK-side install from the app, firmware
@@ -173,7 +184,10 @@ What is still patched into the 4.3.0 packs, and why, is in
 interrupts: the 4.3.0 handler has no interrupt-nesting count, so an inner interrupt that
 requests a yield switches context while the outer ISR is still in progress. `patch_packs.py`
 restores the upstream FreeRTOS ARM_CRx bookkeeping (count on entry, `switch_before_exit` only at
-level 0) as a minimal edit of the 4.3.0 file; this has not been reported upstream yet.
+level 0) as a minimal edit of the 4.3.0 file. Reported upstream as
+[renesas/rz-fsp#34](https://github.com/renesas/rz-fsp/issues/34); the measurements behind it
+(the unmodified handler crashes the core within seconds once a nested ISR requests a yield, the
+count prevents it) are in [firmware/experiments/nested-yield](firmware/experiments/nested-yield/README.md).
 
 Renesas support added (November 2026) that the Multi-OS Package route needs no image change:
 only the FSP source version referenced by the Multi-OS FSP tree moves from 4.2.0 to 4.3.0, with

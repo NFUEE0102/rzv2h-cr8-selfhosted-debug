@@ -175,6 +175,13 @@ STR = {
     "e2s_closed":   {"zh-TW": "e² studio 已關閉 -> 收尾", "en": "e² studio closed -> stopping", "ja": "e² studio が終了 -> 後始末します"},
     "core_states":  {"zh-TW": "CR8 core0：{s0}，core1：{s1}", "en": "CR8 core0: {s0}, core1: {s1}", "ja": "CR8 core0：{s0}、core1：{s1}"},
     "stop_failed":  {"zh-TW": "收尾失敗：{err}", "en": "stop failed: {err}", "ja": "停止に失敗しました：{err}"},
+    # settings saved by an older version of this app
+    "cfg_e2s_moved": {"zh-TW": "設定已更新：e² studio 安裝目錄由 {old} 改為 {new}（這一版的韌體專案需要 RZ FSP 4.x）。要改回去請直接編輯欄位。",
+                      "en": "settings updated: e² studio folder changed from {old} to {new} (the firmware projects of this version need RZ FSP 4.x). Edit the field to change it back.",
+                      "ja": "設定を更新しました：e² studio のフォルダを {old} から {new} に変更しました（このバージョンのファームウェア・プロジェクトには RZ FSP 4.x が必要です）。元に戻すには欄を編集してください。"},
+    "cfg_ws_moved": {"zh-TW": "設定已更新：工作區由 {old} 改為 {new}（舊工作區是舊版 e² studio 建立的，保留不動）。",
+                     "en": "settings updated: workspace changed from {old} to {new} (the old one was created by the older e² studio and is left as it is).",
+                     "ja": "設定を更新しました：ワークスペースを {old} から {new} に変更しました（旧ワークスペースは旧バージョンの e² studio が作成したもので、そのまま残します）。"},
 }
 LANG = "en"
 
@@ -233,13 +240,45 @@ DEFAULTS = {
 }
 
 
+CFG_VER = 2                # 2: firmware projects are RZ FSP 4.x (e2 studio 2026-10)
+CFG_NOTES = []             # (string key, {old, new}) for what load_config() changed; shown in the log
+
+
+def has_fsp4(e2s):
+    """True if this e2 studio install carries the RZ/V FSP 4.x packs the firmware projects need"""
+    for sub in (("internal", "projectgen", "rz_fsp", "packs"), ("internal", "projectgen", "rz_fsp", "rzv", "packs")):
+        d = os.path.join(e2s, *sub)
+        try:
+            if any(n.startswith("Renesas.RZV.4.") and n.endswith(".pack") for n in os.listdir(d)):
+                return True
+        except OSError:
+            pass
+    return False
+
+
 def load_config():
     cfg = dict(DEFAULTS)
+    saved = {}
     try:
         with open(CONFIG, encoding="utf-8") as f:
-            cfg.update(json.load(f))
+            saved = json.load(f)
+        cfg.update(saved)
     except (OSError, ValueError):
         pass
+    del CFG_NOTES[:]
+    if saved and int(saved.get("cfg_ver", 1) or 1) < CFG_VER:
+        # Settings from a version whose firmware was an FSP 3.x project. The saved e2 studio folder
+        # wins over the detected one, so it would open the 4.x projects with the old install: move
+        # on to the detected install when the saved one cannot build them and the detected one can.
+        old, new = cfg.get("e2studio", ""), DEFAULTS["e2studio"]
+        if old and os.path.normcase(old) != os.path.normcase(new) and not has_fsp4(old) and has_fsp4(new):
+            cfg["e2studio"] = new
+            CFG_NOTES.append(("cfg_e2s_moved", {"old": old, "new": new}))
+            ws = cfg.get("workspace", "")
+            if ws and os.path.isdir(os.path.join(ws, ".metadata")):    # written by the older e2 studio
+                cfg["workspace"] = ws.rstrip("\\/") + "-fsp4"
+                CFG_NOTES.append(("cfg_ws_moved", {"old": ws, "new": cfg["workspace"]}))
+    cfg["cfg_ver"] = CFG_VER
     return cfg
 
 
@@ -653,6 +692,8 @@ class App(tk.Tk):
         self.values = {k: self.cfg.get(k, "") for k, _ in self.FIELDS}
         self.lines = []            # log lines, kept across a language switch
         self._build()
+        for key, kw in CFG_NOTES:
+            self.log(T(key, **kw))
         self.after(100, self._drain)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
