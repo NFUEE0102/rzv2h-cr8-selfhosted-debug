@@ -10,6 +10,8 @@
 #                     overflow bug, built -O0, for the single-step / fix-it debugger demo   [cr8_demo]
 #   core1-echo        core1, per-core layout: rpmsg echo + black box
 #   core1-uart        core1-echo + RSCI5 UART demo channel (P72/P73, UARC/UARS protocol)     [cr8_core1_demo]
+#   exp-nested-yield  core1-echo + the nested-interrupt context-switch probe (experiments/nested-yield)
+#   exp-normal-app    same probe in an ordinary application workload (100 Hz control task + housekeeping)
 # env: E2STUDIO (~/rzv-tools/e2studio) CM33_PROJECT (<firmware>/cm33_demo, imported so the interlock .sbd
 #      reference resolves) TC (GNU Arm toolchain bin dir; default = the one bundled with e2studio)
 # Output: out/<variant>.elf (+ .map, .md5, build log) ; work tree in build/<variant>/
@@ -44,6 +46,10 @@ case $V in
   core1-echo) CORE=1; python3 "$CR8FW/variants/core1_echo.py" "$B" || exit 1;;
   core1-uart) CORE=1; python3 "$CR8FW/variants/core1_echo.py" "$B" || exit 1
               python3 "$CR8FW/variants/core1_uart.py" "$B" || exit 1;;
+  exp-nested-yield) CORE=1; python3 "$CR8FW/variants/core1_echo.py" "$B" || exit 1   # experiments/nested-yield
+              python3 "$CR8FW/experiments/nested-yield/apply.py" "$B" || exit 1;;
+  exp-normal-app) CORE=1; python3 "$CR8FW/variants/core1_echo.py" "$B" || exit 1     # experiments/nested-yield
+              python3 "$CR8FW/experiments/nested-yield/apply.py" "$B" --workload 2 || exit 1;;
   *) echo "unknown variant $V"; exit 2;;
 esac
 [ "$NOBUILD" = 1 ] && { echo "work tree ready: $B"; exit 0; }

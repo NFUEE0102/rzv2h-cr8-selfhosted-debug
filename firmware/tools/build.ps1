@@ -38,6 +38,8 @@ switch ($Variant) {
     "core0-demo"       { PyRun "$Fw\variants\core0_pwm_plane.py" $B; PyRun "$Fw\variants\core0_demo.py" $B }
     "core1-echo"       { $Core = 1; PyRun "$Fw\variants\core1_echo.py" $B }
     "core1-uart"       { $Core = 1; PyRun "$Fw\variants\core1_echo.py" $B; PyRun "$Fw\variants\core1_uart.py" $B }
+    "exp-nested-yield" { $Core = 1; PyRun "$Fw\variants\core1_echo.py" $B; PyRun "$Fw\experiments\nested-yield\apply.py" $B }
+    "exp-normal-app"   { $Core = 1; PyRun "$Fw\variants\core1_echo.py" $B; PyRun "$Fw\experiments\nested-yield\apply.py" $B --workload 2 }
     default            { throw "unknown variant $Variant" }
 }
 if ($NoBuild) { Write-Host "work tree ready: $B"; exit 0 }

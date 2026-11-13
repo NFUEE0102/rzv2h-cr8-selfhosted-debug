@@ -1,0 +1,67 @@
+  R8 running (cr8_demo.elf)
+  CR8 core1 running (cr8_exp_ny_vendor.elf)
+  cr8-core0  boot#22  uptime      8200  stage 12  [R8]
+  cr8-core1  boot#22  uptime      5000  stage 12  [R8]
+t=0    fault=0x00000000 tick=8312 echoes=0 nested_irq=0 | nested_yield=0 outer_flag_set=0 outer_flag_clear=0 ids=0x00000000 rpr_inner=0x00000000 task=0x00000000 sched_not_running=0 | woke_during=0 woke_after=0 task_in_isr=0 rpr=0x00000000 ticks_bad=0x00000000 ticks_norm=0x00000000 | cnt=0x00000000/0x00000000/0x00000000 cmp=0x00000000 busy=0 | rproc=running start
+t=61   fault=0x00000005 tick=13209 echoes=35029 nested_irq=78 | nested_yield=81 outer_flag_set=3 outer_flag_clear=47 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=48 | woke_during=63 woke_after=50 task_in_isr=63 rpr=0x01FF01E0 ticks_bad=0x00080000 ticks_norm=0x00080018 | cnt=0x00018552/0x0001846D/0x000183B9 cmp=0x0001869E busy=5296 | rproc=running run=ok
+fault recorded: stopping
+  Percentiles (ms): p50=0.151  p90=0.156  p99=0.174  p99.9=0.200  p99.99=3.148
+  Outliers: >0.5ms = 16 (0.0800%)   >2ms = 16 (0.0800%)
+  T1 verdict: p99.9 <= 0.5ms, has >2ms outliers  ->  TRIGGERED (see doc 13 §6)
+---- black box
+boot #22  version 22  uptime 13000 ticks  stage 8
+向量表索引越界: 0 次
+死因: 未定義指令  (type=5, task=undef)
+  arg0=0x00000000  arg1=0x00000000  lr=0x08208334
+  sp_svc=0x00000000  sp_irq=0x00000000
+ISR 毀損偵測:
+  進入 45921 次,最後 IRQ=54 (ICCIAR 0x36)
+  對齊字已校準: addr=0x00029FC8 應為 0  (靜止 sp_svc=0x00029FE8)
+  尚未偵測到毀損 (irq_bad=0)
+故障當下(直接取自 SRAM,非 pump 過的陳舊副本):
+  guard sp 00000000..00000000   巢狀深度=0   最後 IRQ=0
+  最後 8 次中斷(舊 -> 新):
+    [0] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [1] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [2] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [3] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [4] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [5] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [6] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+    [7] IRQ=0    sp=0x00000000 depth=0  對齊字[0x00000000]=0x00000000  <- 最後一次
+         sp_irq=0x00000000  被打斷的是 ?(SPSR=0x00000000)  返回=0x00000000
+IRQ 收尾快照:韌體 v22 起不再由 portASM 寫入(FSP 4.3.0 handler,只保留巢狀計數)
+獨立訊號(不經 sensor task):
+  tick ISR=13209   FreeRTOS tick=13208   落差=1
+  tick_count = 13209   sensor task 停在: (未設) (0)
+巢狀 yield 攔截(修正):
+  攔下 78 次  補做 0 次   <- 這些原本每一次都可能讓 R8 死掉
+中斷巢狀:
+  最大深度 2   guard 因巢狀跳過 0 次
+漂移偵測:
+  guard sp   0x00029F18 .. 0x00029F90   幅度 120 bytes   ★ sp_svc 會漂!
+  靜止 sp_svc 0x00029F78 .. 0x00029FE8  幅度 112 bytes   ★ 會漂!
+堆疊水位 (上色 bitmask=0x7):
+  SVC     320 /  8192 bytes  (  3.9%)
+  IRQ      64 / 16384 bytes  (  0.4%)
+  SYS      64 /  4096 bytes  (  1.6%)
+計數器:
+  hb_ipi            35037
+  hb_sensor             0
+  hb_eptcb          35029
+  mhu_isr           35029
+  sem_give          35029
+  sem_take          35029
+  sem_timeout           7
+  notif_ok          35036
+  notif_err             0
+  send_ok               0
+  send_err              0
+  mtx_block             0

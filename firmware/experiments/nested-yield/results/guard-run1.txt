@@ -1,0 +1,65 @@
+  R8 running (cr8_demo.elf)
+  CR8 core1 running (cr8_exp_ny_guard.elf)
+  cr8-core0  boot#23  uptime      8200  stage 12  [R8]
+  cr8-core1  boot#23  uptime      5000  stage 12  [R8]
+t=0    fault=0x00000000 tick=8312 echoes=0 nested_irq=0 | nested_yield=0 outer_flag_set=0 outer_flag_clear=0 ids=0x00000000 rpr_inner=0x00000000 task=0x00000000 sched_not_running=0 | woke_during=0 woke_after=0 task_in_isr=0 rpr=0x00000000 ticks_bad=0x00000000 ticks_norm=0x00000000 | cnt=0x00000000/0x00000000/0x00000000 cmp=0x00000000 busy=0 | rproc=running start
+t=6    fault=0x00000000 tick=14459 echoes=40481 nested_irq=55 | nested_yield=55 outer_flag_set=55 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=22 | woke_during=0 woke_after=55 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184F8/0x000183B0/0x00018489 cmp=0x0001869E busy=8328 | rproc=running run=ok
+t=22   fault=0x00000000 tick=29622 echoes=80962 nested_irq=88 | nested_yield=88 outer_flag_set=88 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=38 | woke_during=0 woke_after=88 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018464/0x000182BA/0x000183D3 cmp=0x0001869E busy=40634 | rproc=running run=ok
+t=37   fault=0x00000000 tick=44791 echoes=121443 nested_irq=125 | nested_yield=125 outer_flag_set=125 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=60 | woke_during=0 woke_after=125 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184DD/0x00018393/0x0001846F cmp=0x0001869E busy=72959 | rproc=running run=ok
+t=52   fault=0x00000000 tick=59974 echoes=161924 nested_irq=188 | nested_yield=188 outer_flag_set=188 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=90 | woke_during=0 woke_after=188 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x0001846C/0x000182BE/0x000183DB cmp=0x0001869E busy=105296 | rproc=running run=ok
+t=67   fault=0x00000000 tick=75150 echoes=202405 nested_irq=232 | nested_yield=232 outer_flag_set=232 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=116 | woke_during=0 woke_after=232 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018480/0x000182C9/0x000183EF cmp=0x0001869E busy=137632 | rproc=running run=ok
+t=82   fault=0x00000000 tick=90301 echoes=242886 nested_irq=275 | nested_yield=275 outer_flag_set=275 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=141 | woke_during=0 woke_after=275 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184F7/0x000183B2/0x0001848A cmp=0x0001869E busy=169927 | rproc=running run=ok
+t=97   fault=0x00000000 tick=105468 echoes=283367 nested_irq=320 | nested_yield=320 outer_flag_set=320 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=165 | woke_during=0 woke_after=320 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018470/0x000182D7/0x000183F4 cmp=0x0001869E busy=202262 | rproc=running run=ok
+t=113  fault=0x00000000 tick=120634 echoes=323848 nested_irq=377 | nested_yield=377 outer_flag_set=377 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=195 | woke_during=0 woke_after=377 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x0001846E/0x000182D6/0x000183EB cmp=0x0001869E busy=234575 | rproc=running run=ok
+t=128  fault=0x00000000 tick=135816 echoes=364329 nested_irq=421 | nested_yield=421 outer_flag_set=421 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=223 | woke_during=0 woke_after=421 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x0001844E/0x0001828C/0x000183CE cmp=0x0001869E busy=266926 | rproc=running run=ok
+t=143  fault=0x00000000 tick=150973 echoes=404810 nested_irq=460 | nested_yield=460 outer_flag_set=460 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=248 | woke_during=0 woke_after=460 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184D4/0x0001838C/0x00018464 cmp=0x0001869E busy=299253 | rproc=running run=ok
+t=158  fault=0x00000000 tick=166133 echoes=445291 nested_irq=516 | nested_yield=516 outer_flag_set=516 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=278 | woke_during=0 woke_after=516 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184D9/0x00018366/0x0001846A cmp=0x0001869E busy=331558 | rproc=running run=ok
+t=173  fault=0x00000000 tick=181290 echoes=485772 nested_irq=564 | nested_yield=564 outer_flag_set=564 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=308 | woke_during=0 woke_after=564 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184D4/0x0001838C/0x00018464 cmp=0x0001869E busy=363865 | rproc=running run=ok
+t=188  fault=0x00000000 tick=196458 echoes=526253 nested_irq=609 | nested_yield=609 outer_flag_set=609 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=336 | woke_during=0 woke_after=609 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018459/0x000182B9/0x000183D3 cmp=0x0001869E busy=396198 | rproc=running run=ok
+t=204  fault=0x00000000 tick=211625 echoes=566734 nested_irq=661 | nested_yield=661 outer_flag_set=661 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=365 | woke_during=0 woke_after=661 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018482/0x000182C8/0x000183F2 cmp=0x0001869E busy=428514 | rproc=running run=ok
+t=219  fault=0x00000000 tick=226785 echoes=607215 nested_irq=714 | nested_yield=714 outer_flag_set=714 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=396 | woke_during=0 woke_after=714 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018528/0x0001838F/0x0001846A cmp=0x0001869E busy=460827 | rproc=running run=ok
+t=234  fault=0x00000000 tick=241962 echoes=647696 nested_irq=752 | nested_yield=752 outer_flag_set=752 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=412 | woke_during=0 woke_after=752 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018472/0x000182A4/0x000183BF cmp=0x0001869E busy=493159 | rproc=running run=ok
+t=249  fault=0x00000000 tick=257125 echoes=688177 nested_irq=804 | nested_yield=804 outer_flag_set=804 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=435 | woke_during=0 woke_after=804 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x0001846C/0x000182C3/0x000183DB cmp=0x0001869E busy=525473 | rproc=running run=ok
+t=264  fault=0x00000000 tick=272298 echoes=728658 nested_irq=842 | nested_yield=842 outer_flag_set=842 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=453 | woke_during=0 woke_after=842 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184DF/0x00018397/0x00018471 cmp=0x0001869E busy=557828 | rproc=running run=ok
+t=279  fault=0x00000000 tick=287475 echoes=769139 nested_irq=885 | nested_yield=885 outer_flag_set=885 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x5F707865 sched_not_running=466 | woke_during=0 woke_after=885 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x000184D8/0x00018357/0x00018457 cmp=0x0001869E busy=590175 | rproc=running run=ok
+t=295  fault=0x00000000 tick=302664 echoes=809620 nested_irq=944 | nested_yield=944 outer_flag_set=944 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=489 | woke_during=0 woke_after=944 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018464/0x000182B0/0x000183CA cmp=0x0001869E busy=622528 | rproc=running run=ok
+t=310  fault=0x00000000 tick=317830 echoes=850101 nested_irq=979 | nested_yield=979 outer_flag_set=979 outer_flag_clear=0 ids=0x015B0016 rpr_inner=0x000000C0 task=0x454C4449 sched_not_running=517 | woke_during=0 woke_after=979 task_in_isr=0 rpr=0x01FF0000 ticks_bad=0x00000000 ticks_norm=0x00080018 | cnt=0x00018462/0x000182BB/0x000183D0 cmp=0x0001869E busy=654844 | rproc=running run=ok
+  Percentiles (ms): p50=0.151  p90=0.156  p99=0.172  p99.9=0.181  p99.99=0.192
+  Outliers: >0.5ms = 0 (0.0000%)   >2ms = 0 (0.0000%)
+  Throughput: 6567.0 round-trips/sec, 3078.3 KB/s payload, 3180.9 KB/s incl. rpmsg header
+---- black box
+boot #23  version 22  uptime 318000 ticks  stage 8
+向量表索引越界: 0 次
+死因: 無
+ISR 毀損偵測:
+  進入 1168122 次,最後 IRQ=54 (ICCIAR 0x36)
+  對齊字已校準: addr=0x00029FC8 應為 0  (靜止 sp_svc=0x00029FE8)
+  尚未偵測到毀損 (irq_bad=0)
+IRQ 收尾快照:韌體 v22 起不再由 portASM 寫入(FSP 4.3.0 handler,只保留巢狀計數)
+獨立訊號(不經 sensor task):
+  tick ISR=318518   FreeRTOS tick=318544   落差=-26
+  tick_count = 318518   sensor task 停在: (未設) (0)
+巢狀 yield 攔截(修正):
+  攔下 979 次  補做 0 次   <- 這些原本每一次都可能讓 R8 死掉
+中斷巢狀:
+  最大深度 2   guard 因巢狀跳過 0 次
+漂移偵測:
+  guard sp   0x00029F18 .. 0x00029F90   幅度 120 bytes   ★ sp_svc 會漂!
+  靜止 sp_svc 0x00029FE8 .. 0x00029FE8  幅度 0 bytes   (穩定)
+堆疊水位 (上色 bitmask=0x7):
+  SVC     320 /  8192 bytes  (  3.9%)
+  IRQ      64 / 16384 bytes  (  0.4%)
+  SYS      64 /  4096 bytes  (  1.6%)
+計數器:
+  hb_ipi           850407
+  hb_sensor             0
+  hb_eptcb         850101
+  mhu_isr          850101
+  sem_give         850101
+  sem_take         850101
+  sem_timeout         285
+  notif_ok         850386
+  notif_err             0
+  send_ok               0
+  send_err              0
+  mtx_block             0
