@@ -6,6 +6,12 @@ debug registers through `/dev/mem`, and e² studio talks to it exactly as it wou
 J-Link gdb server. Halt, registers, single step, hardware breakpoints, memory, all from the
 board itself — also when the board is sealed inside an airframe.
 
+The usual way to debug the CR8 is a SEGGER J-Link on the board's JTAG header
+([SEGGER: RZ/V2H support](https://kb.segger.com/Renesas_RZ/V2H)). For commercial work that
+means a J-Link BASE or above, €448 at SEGGER's list price (excl. VAT, November 2026); the low-cost
+J-Link EDU models are licensed for non-profit education only. This repository needs nothing but
+the board and a network connection.
+
 ```
  Linux host (e² studio)                      RZ/V2H EVK
  ┌──────────────────────┐   ssh -L 3333   ┌──────────────────────────────────────────┐
@@ -212,7 +218,8 @@ are included.
 ## 快速開始（繁體中文）
 
 這個專案讓 RZ/V2H 用自己的 A55 Linux 當除錯器，對 Cortex-R8 做原始碼級單步除錯，不需要
-J-Link。
+J-Link。一般做法是接 SEGGER J-Link，商業用途最低要 J-Link BASE（SEGGER 牌價 €448，未稅，
+2026 年 11 月）；便宜的 J-Link EDU 系列授權只限非營利教學。
 
 1. **EVK 端**：DSW1-7 撥 ON 後斷電重開；clone 本專案，執行 `bash debug/install-on-evk.sh`
    （有從 Releases 下載 `openocd-rzv2h-aarch64.tar.gz` 放進 `debug/` 的話幾秒就好，沒有的話會
